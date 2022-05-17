@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# Custom
+compile_commands.json
+CMakeLists.txt.user
