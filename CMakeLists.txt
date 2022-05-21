@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_TESTING "Build unit tests" OFF)
+option(BUILD_TEST_WITH_EMULATOR "Build test with emulator" OFF)
 
 add_library(tap-protocol STATIC
         include/tap_protocol/cktapcard.h
@@ -26,7 +27,7 @@ target_include_directories("${PROJECT_NAME}" PUBLIC
         ${PROJECT_SOURCE_DIR}/third_party/include
         )
 
-target_compile_definitions(tap-protocol PRIVATE TAPPROTOCOL_LIBRARY)
+target_compile_definitions(${PROJECT_NAME} PRIVATE TAPPROTOCOL_LIBRARY)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -51,6 +52,10 @@ if (BUILD_TESTING)
                 "${PROJECT_SOURCE_DIR}/tests/third_party/doctest"
                 "${PROJECT_SOURCE_DIR}/include"
                 )
+        if (BUILD_TEST_WITH_EMULATOR)
+          target_compile_definitions(${testcase} PRIVATE BUILD_TEST_WITH_EMULATOR)
+        endif()
+
         add_test(NAME ${testcase} COMMAND ${testcase})
     endforeach ()
 endif ()

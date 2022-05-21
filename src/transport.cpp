@@ -45,6 +45,10 @@ json TransportImpl::Send(const json &msg) {
   try {
     const auto request = detail::make_apdu_request(msg);
     NdefMessage response = send_receive_func_(request);
+    // TODO: get sw from card
+    if (response.size() > 2) {
+      response.resize(response.size() - 2);
+    }
     return json::from_cbor(response);
   } catch (json::exception &ex) {
     throw TapProtoException(TapProtoException::SERIALIZE_ERROR, ex.what());
