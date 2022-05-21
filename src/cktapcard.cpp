@@ -1,8 +1,7 @@
 #include "tap_protocol/cktapcard.h"
 
 namespace tap_protocol {
-CKTapCard::CKTapCard(std::unique_ptr<Transport> transport)
-    : transport_(std::move(transport)) {}
+CKTapCard::CKTapCard(Transport* transport) : transport_(transport) {}
 
 TapSigner::StatusResponse TapSigner::Status() {
   return transport_->Send({{"cmd", "status"}});
