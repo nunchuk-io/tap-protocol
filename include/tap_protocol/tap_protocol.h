@@ -7,19 +7,21 @@
 #include <string>
 
 namespace tap_protocol {
-using NdefMessage = std::vector<unsigned char>;
+using Bytes = std::vector<unsigned char>;
 
-using SendReceiveFunction =
-    std::function<NdefMessage(const NdefMessage &msg)>;
+using SendReceiveFunction = std::function<Bytes(const Bytes &msg)>;
 
 class TapProtoException : public std::exception {
  public:
   static const int SERIALIZE_ERROR = -1;
+  static const int MESSAGE_TOO_LONG = -2;
+  static const int MISSING_KEY = -3;
 
  public:
   TapProtoException(int code, std::string message);
   const char *what() const noexcept override;
   int code() const noexcept;
+
  private:
   std::string message_;
   int code_;

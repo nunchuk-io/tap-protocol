@@ -8,31 +8,28 @@
 
 #include "tap_protocol/cktapcard.h"
 #include "tap_protocol/transport.h"
-#include "tap_protocol/tap_protocol.h"
 
 using boost::asio::local::stream_protocol;
 
-std::string hex_str(const std::vector<uint8_t>& msg) {
-  std::stringstream result;
-  for (auto&& c : msg) {
-    result << std::hex << std::setw(2) << std::setfill('0') << int(c);
-  }
-  return result.str();
-}
+static boost::asio::io_service io_service_;
+static stream_protocol::socket socket_ =
+    boost::asio::local::stream_protocol::socket(io_service_);
 
+// CardEmulator
+// https://github.com/coinkite/coinkite-tap-proto/tree/master/emulator
 struct CardEmulator : public tap_protocol::Transport {
-  boost::asio::io_service io_service;
-  stream_protocol::socket socket;
+  CardEmulator() { connect(); }
 
-  CardEmulator() : socket(io_service) { reconnect(); }
-  ~CardEmulator() { std::cout << "~CardEmulator() called\n"; }
-
-  void reconnect() { socket.connect("/tmp/ecard-pipe"); }
+  static void connect() {
+    if (!socket_.is_open()) {
+      socket_.connect("/tmp/ecard-pipe");
+    }
+  }
 
   json Send(const json& msg) override {
     auto cborRequest = json::to_cbor(msg);
     boost::system::error_code error;
-    boost::asio::write(socket, boost::asio::buffer(cborRequest), error);
+    boost::asio::write(socket_, boost::asio::buffer(cborRequest), error);
     if (error) {
       throw std::runtime_error(error.message() + "|" +
                                std::to_string(error.value()));
@@ -40,8 +37,8 @@ struct CardEmulator : public tap_protocol::Transport {
       // write ok
     }
     boost::asio::streambuf receive_buffer;
-    auto reply_length =
-        boost::asio::read_until(socket, receive_buffer, '\n', error);
+    boost::asio::read(socket_, receive_buffer,
+                      boost::asio::transfer_at_least(1), error);
 
     if (error && error != boost::asio::error::eof) {
       throw std::runtime_error(error.message() + "|" +
@@ -49,25 +46,44 @@ struct CardEmulator : public tap_protocol::Transport {
     } else {
       const char* data =
           boost::asio::buffer_cast<const char*>(receive_buffer.data());
-      std::string_view sv(data, receive_buffer.size());
-
-      // TODO: not official emulator
-      if (sv.front() == '\n') {
-        sv.remove_prefix(1);
-      }
-      if (sv.back() == '\n') {
-        sv.remove_suffix(1);
-      }
-      return json::from_cbor(sv);
+      return json::from_cbor(data, data + receive_buffer.size());
     }
   };
 };
 
-std::unique_ptr<tap_protocol::Transport> tp = std::make_unique<CardEmulator>();
+TEST_CASE("tapsigner status emulator") {
 
-TEST_CASE("tapsigner status") {
-  tap_protocol::TapSigner tapSigner(tp.get());
-  json resp = tapSigner.Status();
+  // Given card
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+
+  tap_protocol::TapSigner tapSigner(std::move(tp));
+
+  // When call 'status'
+  auto resp = tapSigner.Status();
+
+  // Then return proto version = 1
+  CHECK(resp.proto == 1);
+
+  std::cout << json(resp).dump(2) << "\n";
+}
+
+TEST_CASE("get nfc url") {
+
+  // Given card
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+
+  tap_protocol::TapSigner tapSigner(std::move(tp));
+
+  // When call 'nfc'
+  auto resp = tapSigner.NFC();
+
+  // Then return url start with "https://tapsigner.com"
+  const std::string url = "https://tapsigner.com";
+  CHECK(url == resp.substr(0, url.size()));
+
+  std::cout << "card nfc url: " << resp << "\n";
 }
 
 #endif

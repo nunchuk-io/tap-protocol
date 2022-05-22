@@ -19,15 +19,19 @@ std::string hex_str(const std::vector<uint8_t> &msg) {
   return result.str();
 }
 
-NdefMessage make_apdu_request(const json &msg) {
+Bytes make_apdu_request(const json &msg) {
   auto cborRequest = json::to_cbor(msg);
+  if (cborRequest.size() > 255) {
+    throw TapProtoException(TapProtoException::MESSAGE_TOO_LONG,
+                            "Message too long");
+  }
   constexpr char cla = 0x00;
   constexpr char ins = 0xcb;
   constexpr char p1 = 0;
   constexpr char p2 = 0;
   auto lc = detail::size_to_lc(cborRequest.size());
 
-  NdefMessage result;
+  Bytes result;
   result.push_back(cla);
   result.push_back(ins);
   result.push_back(p1);
@@ -44,8 +48,9 @@ TransportImpl::TransportImpl(SendReceiveFunction send_receive_func)
 json TransportImpl::Send(const json &msg) {
   try {
     const auto request = detail::make_apdu_request(msg);
-    NdefMessage response = send_receive_func_(request);
-    // TODO: get sw from card
+
+    Bytes response = send_receive_func_(request);
+    // TODO: do something with 2 sw bytes
     if (response.size() > 2) {
       response.resize(response.size() - 2);
     }
