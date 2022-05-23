@@ -30,15 +30,18 @@ class CKTapCard {
   };
 
   nlohmann::json Send(const nlohmann::json& msg);
-  nlohmann::json SendAuth(const nlohmann::json& msg, const std::string& cvc);
+  std::pair<Bytes, nlohmann::json> SendAuth(const nlohmann::json& msg,
+                                            const Bytes& cvc = {});
 
   virtual StatusResponse Status() = 0;
   virtual std::string NFC() = 0;
 
  protected:
+  void FirstLook();
   std::unique_ptr<Transport> transport_;
   nlohmann::json::binary_t card_nonce_;
   nlohmann::json::binary_t card_pubkey_;
+  nlohmann::json::binary_t card_ident_;
 };
 
 class TapSigner : public CKTapCard {

@@ -1,22 +1,35 @@
 # tap-protocol
-Coinkite Tap Protocol
+Coinkite Tap Protocol implement
+[https://github.com/coinkite/coinkite-tap-proto/blob/master/docs/protocol.md](https://github.com/coinkite/coinkite-tap-proto/blob/master/docs/protocol.md)
 
-# Build
-
-## Build secp256k1
-[https://github.com/bitcoin-core/secp256k1#build-steps](https://github.com/bitcoin-core/secp256k1#build-steps)
-
-## Build tap-protocol
+# Setup
 
 ```
-mkdir build
-cd build
-cmake -DBUILD_TESTING=ON -DBUILD_TEST_WITH_EMULATOR=ON ..
-make
-make test #run tests
+$ cd your_project/
+$ git submodule add https://github.com/nunchuk-io/tap-protocol
+$ git submodule update --init --recursive
 ```
 
-# JNI
+Add the following to your CMakeLists.txt
+
+```
+add_subdirectory(tap-protocol)
+target_link_libraries("${PROJECT_NAME}" PUBLIC tap-protocol)
+```
+
+## Build libwally-core ([detail](https://github.com/ElementsProject/libwally-core#building))
+```
+# For android
+$ ./tools/build_android_libraries.sh.sh
+
+# For linux
+$ ./tools/build_unix_libraries.sh.sh
+```
+
+# Use with JNI
+
+
+Android Intent that handle NFC event
 
 ```
     protected void onNewIntent(Intent intent) {
@@ -45,23 +58,9 @@ make test #run tests
 
 ```
 
-```
-cd <android project location>
-git clone https://github.com/nunchuk-io/tap-protocol src/main/cpp/tap-protocol
-# build tap-protocol
-```
+Native library code
 
 ```
-# src/main/cpp/CMakeLists.txt
-add_subdirectory(tap-protocol)
-target_link_libraries(
-        tap_protocol_nativesdk
-        tap-protocol
-        )
-```
-
-```
-
 #include <tap_protocol/tap_protocol.h>
 #include <tap_protocol/cktapcard.h>
 
@@ -72,7 +71,7 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
     jclass isoDepClass = env->FindClass("android/nfc/tech/IsoDep");
     jmethodID tranceiveMethodID = env->GetMethodID(isoDepClass, "transceive", "([B)[B");
 
-    auto tp = tap_protocol::MakeDefaultTransport([&](const tap_protocol::Bytes &in) {
+    auto tp = tap_protocol::MakeDefaultTransport([=](const tap_protocol::Bytes &in) {
         auto bytesToSend = env->NewByteArray(in.size());
         env->SetByteArrayRegion(bytesToSend, 0, in.size(), (jbyte *) in.data());
         auto bytesReceive = (jbyteArray) env->CallObjectMethod(nfca, tranceiveMethodID,
@@ -89,3 +88,15 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
     
 }
 ```
+
+# Development
+
+## Testing
+```
+mkdir build
+cd build
+cmake -DBUILD_TESTING=ON -DBUILD_TEST_WITH_EMULATOR=ON ..
+make all test
+```
+
+

@@ -1,9 +1,21 @@
 #include "tap_protocol/cktapcard.h"
-//#include "secp256k1.h"
+#include "nlohmann/json.hpp"
+#include "tap_protocol/utils.h"
 
 namespace tap_protocol {
 CKTapCard::CKTapCard(std::unique_ptr<Transport> transport)
     : transport_(std::move(transport)) {}
+
+void CKTapCard::FirstLook() {
+  auto status = Status();
+  if (status.proto != 1) {
+    throw TapProtoException(TapProtoException::UNKNOW_PROTO_VERSION,
+                            "Unknown card protocol version");
+  }
+  // TODO: tampered
+  card_pubkey_ = status.pubkey;
+  // TODO: card ident...
+}
 
 nlohmann::json CKTapCard::Send(const nlohmann::json& msg) {
   auto resp = transport_->Send(msg);
@@ -13,12 +25,25 @@ nlohmann::json CKTapCard::Send(const nlohmann::json& msg) {
   return resp;
 }
 
-nlohmann::json CKTapCard::SendAuth(const nlohmann::json& msg,
-                                   const std::string& cvc) {
-  //    secp256k1_context* ctx =
-  //    secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
-  //    secp256k1_context_destroy(ctx);
-  return {};
+std::pair<Bytes, nlohmann::json> CKTapCard::SendAuth(const nlohmann::json& msg,
+                                                     const Bytes& cvc) {
+  nlohmann::json send_msg = msg;
+  Bytes session_key;
+  if (cvc.size() == 0) {
+    XCVC xcvc = CalcXCVC(card_nonce_, card_pubkey_, cvc);
+    session_key = std::move(xcvc.session_key);
+    send_msg.merge_patch(xcvc);
+  }
+
+  std::string cmd = send_msg.value("cmd", {});
+
+  if (cmd == "send") {
+    send_msg["digest"] = XORBytes(send_msg["digest"], session_key);
+  } else if (cmd == "change") {
+    session_key.resize(send_msg["data"].size());
+    send_msg["data"] = XORBytes(send_msg["data"], session_key);
+  }
+  return {session_key, Send(send_msg)};
 }
 
 TapSigner::StatusResponse TapSigner::Status() {

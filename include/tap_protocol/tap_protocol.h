@@ -18,6 +18,11 @@ class TapProtoException : public std::exception {
   static const int MISSING_KEY = -3;
   static const int ISO_APP_SELECT_FAILED = -4;
   static const int SW_FAIL = -5;
+  static const int INVALID_CVC_LENGTH = -6;
+  static const int PICK_KEY_PAIR_FAIL = -7;
+  static const int ECDH_FAIL = -8;
+  static const int XCVC_FAIL = -9;
+  static const int UNKNOW_PROTO_VERSION = -10;
 
  public:
   TapProtoException(int code, std::string message);

@@ -20,13 +20,7 @@ static std::vector<char> SizeToLC(size_t size) {
           static_cast<char>((size & 0xff))};
 }
 
-static std::string Hex2Str(const std::vector<uint8_t> &msg) {
-  std::ostringstream result;
-  for (auto &&c : msg) {
-    result << std::hex << std::setw(2) << std::setfill('0') << int(c);
-  }
-  return result.str();
-}
+
 
 static Bytes MakeAPDURequest(const Bytes &msg, char cla = CLA, char ins = INS,
                              char p1 = P1, char p2 = P2) {
