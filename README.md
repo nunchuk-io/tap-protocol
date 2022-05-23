@@ -24,11 +24,11 @@ make test #run tests
         byte[] id = intent.getByteArrayExtra(NfcAdapter.EXTRA_ID);
         Tag tag = (Tag) intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 
-        NfcA nfca = NfcA.get(tag);
+        IsoDep card = IsoDep.get(tag);
         try {
-            nfca.connect();
-            if (nfca.isConnected()) {
-                addCard(nfca);
+            card.connect();
+            if (card.isConnected()) {
+                addCard(card);
             }
 
         } catch (Exception e) {
@@ -40,7 +40,7 @@ make test #run tests
         System.loadLibrary("tap_protocol_nativesdk");
     }
 
-    public native void addCard(NfcA nfcA);
+    public native void addCard(IsoDep card);
 
 
 ```
@@ -68,9 +68,9 @@ target_link_libraries(
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobject thiz,
-                                                               jobject nfca) {
-    jclass nfcaClass = env->FindClass("android/nfc/tech/NfcA");
-    jmethodID tranceiveMethodID = env->GetMethodID(nfcaClass, "transceive", "([B)[B");
+                                                               jobject card) {
+    jclass isoDepClass = env->FindClass("android/nfc/tech/IsoDep");
+    jmethodID tranceiveMethodID = env->GetMethodID(isoDepClass, "transceive", "([B)[B");
 
     auto tp = tap_protocol::MakeDefaultTransport([&](const tap_protocol::Bytes &in) {
         auto bytesToSend = env->NewByteArray(in.size());
@@ -85,6 +85,7 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
     });
     tap_protocol::TapSigner tapSigner(std::move(tp));
     // Call status
-    tapSigner.Status();
+    auto resp = tapSigner.Status();
+    
 }
 ```

@@ -1,5 +1,5 @@
 #include "tap_protocol/cktapcard.h"
-#include "secp256k1.h"
+//#include "secp256k1.h"
 
 namespace tap_protocol {
 CKTapCard::CKTapCard(std::unique_ptr<Transport> transport)
@@ -14,10 +14,11 @@ nlohmann::json CKTapCard::Send(const nlohmann::json& msg) {
 }
 
 nlohmann::json CKTapCard::SendAuth(const nlohmann::json& msg,
-    const std::string& cvc) {
-  
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
-    secp256k1_context_destroy(ctx);
+                                   const std::string& cvc) {
+  //    secp256k1_context* ctx =
+  //    secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+  //    secp256k1_context_destroy(ctx);
+  return {};
 }
 
 TapSigner::StatusResponse TapSigner::Status() {

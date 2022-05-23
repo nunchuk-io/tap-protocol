@@ -29,7 +29,7 @@ add_library(tap-protocol STATIC
         src/tap_protocol.cpp)
 
 
-target_link_libraries(tap-protocol PUBLIC secp256k1)
+#target_link_libraries(tap-protocol PUBLIC secp256k1)
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${PROJECT_SOURCE_DIR}/include

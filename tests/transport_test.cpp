@@ -19,6 +19,14 @@ TEST_CASE("receive invalid cbor") {
       tap_protocol::TapProtoException);
 }
 
+static std::string Hex2Str(const std::vector<uint8_t>& msg) {
+  std::ostringstream result;
+  for (auto&& c : msg) {
+    result << std::hex << std::setw(2) << std::setfill('0') << int(c);
+  }
+  return result.str();
+}
+
 TEST_CASE("decode cbor ok") {
   json j = json::parse(R"(
 {
