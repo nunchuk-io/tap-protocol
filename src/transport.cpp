@@ -3,7 +3,9 @@
 namespace tap_protocol {
 
 namespace detail {
-std::vector<char> size_to_lc(size_t size) {
+static constexpr int SW_OKAY = 0x9000;
+
+static std::vector<char> SizeToLC(size_t size) {
   if (size < 256) {
     return {static_cast<char>(size)};
   }
@@ -11,15 +13,15 @@ std::vector<char> size_to_lc(size_t size) {
           static_cast<char>((size & 0xff))};
 }
 
-std::string hex_str(const std::vector<uint8_t> &msg) {
-  std::stringstream result;
+static std::string Hex2Str(const std::vector<uint8_t> &msg) {
+  std::ostringstream result;
   for (auto &&c : msg) {
     result << std::hex << std::setw(2) << std::setfill('0') << int(c);
   }
   return result.str();
 }
 
-Bytes make_apdu_request(const json &msg) {
+static Bytes MakeAPDURequest(const json &msg) {
   auto cborRequest = json::to_cbor(msg);
   if (cborRequest.size() > 255) {
     throw TapProtoException(TapProtoException::MESSAGE_TOO_LONG,
@@ -29,7 +31,7 @@ Bytes make_apdu_request(const json &msg) {
   constexpr char ins = 0xcb;
   constexpr char p1 = 0;
   constexpr char p2 = 0;
-  auto lc = detail::size_to_lc(cborRequest.size());
+  auto lc = detail::SizeToLC(cborRequest.size());
 
   Bytes result;
   result.push_back(cla);
@@ -47,7 +49,7 @@ TransportImpl::TransportImpl(SendReceiveFunction send_receive_func)
 
 json TransportImpl::Send(const json &msg) {
   try {
-    const auto request = detail::make_apdu_request(msg);
+    const auto request = detail::MakeAPDURequest(msg);
 
     Bytes response = send_receive_func_(request);
     // TODO: do something with 2 sw bytes

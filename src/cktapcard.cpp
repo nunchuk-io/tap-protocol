@@ -1,15 +1,31 @@
 #include "tap_protocol/cktapcard.h"
+#include "secp256k1.h"
 
 namespace tap_protocol {
 CKTapCard::CKTapCard(std::unique_ptr<Transport> transport)
     : transport_(std::move(transport)) {}
 
+nlohmann::json CKTapCard::Send(const nlohmann::json& msg) {
+  auto resp = transport_->Send(msg);
+  if (resp.contains("card_nonce")) {
+    card_nonce_ = resp["card_nonce"];
+  }
+  return resp;
+}
+
+nlohmann::json CKTapCard::SendAuth(const nlohmann::json& msg,
+    const std::string& cvc) {
+  
+    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+    secp256k1_context_destroy(ctx);
+}
+
 TapSigner::StatusResponse TapSigner::Status() {
-  return transport_->Send({{"cmd", "status"}});
+  return Send({{"cmd", "status"}});
 }
 
 std::string TapSigner::NFC() {
-  auto resp = transport_->Send({{"cmd", "nfc"}});
+  auto resp = Send({{"cmd", "nfc"}});
   if (resp.contains("url")) {
     return resp["url"];
   }

@@ -52,7 +52,6 @@ struct CardEmulator : public tap_protocol::Transport {
 };
 
 TEST_CASE("tapsigner status emulator") {
-
   // Given card
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
@@ -69,7 +68,6 @@ TEST_CASE("tapsigner status emulator") {
 }
 
 TEST_CASE("get nfc url") {
-
   // Given card
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();

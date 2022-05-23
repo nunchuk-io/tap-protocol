@@ -52,7 +52,6 @@ TEST_CASE("decode cbor ok") {
   };
 
   auto tp = tap_protocol::MakeDefaultTransport(sendReceiveFunc);
-
   auto resp = tp->Send({{"cmd", "status"}});
 
   CHECK(resp == j);

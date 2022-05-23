@@ -10,6 +10,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build unit tests" OFF)
 option(BUILD_TEST_WITH_EMULATOR "Build test with emulator" OFF)
 
+if(WIN32)
+  add_library(secp256k1 STATIC IMPORTED)
+  set_target_properties(secp256k1 PROPERTIES IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/third_party/secp256k1/build_msvc/x64/Release/libsecp256k1/libsecp256k1.lib")
+  set_target_properties(secp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/third_party/secp256k1/include")
+else()
+  add_library(secp256k1 STATIC IMPORTED)
+  set_target_properties(secp256k1 PROPERTIES IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/third_party/secp256k1/.libs/libsecp256k1.a")
+  set_target_properties(secp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/third_party/secp256k1/include")
+endif()
+
 add_library(tap-protocol STATIC
         include/tap_protocol/cktapcard.h
         include/tap_protocol/transport.h
@@ -19,19 +29,21 @@ add_library(tap-protocol STATIC
         src/tap_protocol.cpp)
 
 
-#target_link_libraries(tap-protocol PUBLIC
-#        )
+target_link_libraries(tap-protocol PUBLIC secp256k1)
 
-target_include_directories("${PROJECT_NAME}" PUBLIC
-        ${PROJECT_SOURCE_DIR}/include
-        ${PROJECT_SOURCE_DIR}/third_party/include
+target_include_directories(${PROJECT_NAME}
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+        PUBLIC ${PROJECT_SOURCE_DIR}/third_party/include
         )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE TAPPROTOCOL_LIBRARY)
 
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-include(CPack)
+target_precompile_headers(${PROJECT_NAME}
+        PRIVATE ${PROJECT_SOURCE_DIR}/third_party/include/nlohmann/json.hpp)
+
+#set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+#set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+#include(CPack)
 
 if (BUILD_TESTING)
     enable_testing()
@@ -40,6 +52,7 @@ if (BUILD_TESTING)
     target_include_directories(unittest_main
             PUBLIC ${PROJECT_SOURCE_DIR}/tests/third_party/doctest
             )
+
     set(files
             tests/transport_test.cpp
             tests/connection_test.cpp
@@ -53,8 +66,8 @@ if (BUILD_TESTING)
                 "${PROJECT_SOURCE_DIR}/include"
                 )
         if (BUILD_TEST_WITH_EMULATOR)
-          target_compile_definitions(${testcase} PRIVATE BUILD_TEST_WITH_EMULATOR)
-        endif()
+            target_compile_definitions(${testcase} PRIVATE BUILD_TEST_WITH_EMULATOR)
+        endif ()
 
         add_test(NAME ${testcase} COMMAND ${testcase})
     endforeach ()
