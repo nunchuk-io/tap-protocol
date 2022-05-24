@@ -20,10 +20,11 @@ target_link_libraries("${PROJECT_NAME}" PUBLIC tap-protocol)
 ## Build libwally-core ([detail](https://github.com/ElementsProject/libwally-core#building))
 ```
 # For android
-$ ./tools/build_android_libraries.sh.sh
+# you may wanna export ANDROID_NDK=/path/to/android-ndk
+$ ./tools/build_android_libraries.sh
 
 # For linux
-$ ./tools/build_unix_libraries.sh.sh
+$ ./tools/build_unix_libraries.sh
 ```
 
 # Use with JNI
@@ -72,6 +73,9 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
     jmethodID tranceiveMethodID = env->GetMethodID(isoDepClass, "transceive", "([B)[B");
 
     auto tp = tap_protocol::MakeDefaultTransport([=](const tap_protocol::Bytes &in) {
+    // Dual to NFC only available when a card tap phone
+    // Client must make sure this function only call when this happend
+
         auto bytesToSend = env->NewByteArray(in.size());
         env->SetByteArrayRegion(bytesToSend, 0, in.size(), (jbyte *) in.data());
         auto bytesReceive = (jbyteArray) env->CallObjectMethod(nfca, tranceiveMethodID,
