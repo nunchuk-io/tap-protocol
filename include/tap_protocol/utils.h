@@ -11,17 +11,22 @@ namespace tap_protocol {
 std::string Bytes2Str(const Bytes &msg);
 
 Bytes XORBytes(const Bytes &a, const Bytes &b);
+Bytes operator^(const Bytes &a, const Bytes &b);
 
 struct XCVC {
-  Bytes session_key;
-  Bytes epubkey;
-  Bytes xcvc;
+  nlohmann::json::binary_t session_key;
+  nlohmann::json::binary_t epubkey;
+  nlohmann::json::binary_t xcvc;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(XCVC, epubkey, xcvc);
 };
 
-XCVC CalcXCVC(const nlohmann::json::binary_t &card_nonce,
+XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
               const nlohmann::json::binary_t &his_pubkey, const Bytes &cvc);
+
+Bytes CardPubkeyToIdent(const Bytes &card_pubkey);
+std::string Path2Str(const std::vector<int64_t> &path);
+Bytes PickNonce();
 
 }  // namespace tap_protocol
 

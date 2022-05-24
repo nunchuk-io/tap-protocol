@@ -17,12 +17,12 @@ class CKTapCard {
     int proto{};
     std::string ver;
     int birth{};
-    std::array<int, 2> slots{0, 1};
+    std::vector<int> slots;
     std::string address;
     nlohmann::json::binary_t pubkey;
     nlohmann::json::binary_t card_nonce;
     bool tapsigner{};
-    std::array<int64_t, 3> path{};
+    std::vector<int64_t> path;
     bool testnet{};
 
     friend void to_json(nlohmann::json& j, const StatusResponse& t);
@@ -32,12 +32,15 @@ class CKTapCard {
   nlohmann::json Send(const nlohmann::json& msg);
   std::pair<Bytes, nlohmann::json> SendAuth(const nlohmann::json& msg,
                                             const Bytes& cvc = {});
+  Bytes GetIdent() const noexcept;
 
-  virtual StatusResponse Status() = 0;
-  virtual std::string NFC() = 0;
+  virtual StatusResponse Status();
+  virtual std::string NFC();
 
  protected:
   void FirstLook();
+
+ protected:
   std::unique_ptr<Transport> transport_;
   nlohmann::json::binary_t card_nonce_;
   nlohmann::json::binary_t card_pubkey_;
@@ -48,8 +51,8 @@ class TapSigner : public CKTapCard {
   using CKTapCard::CKTapCard;
 
  public:
-  StatusResponse Status() override;
-  std::string NFC() override;
+  json Derive(const std::string& path, const std::string& cvc);
+  std::string GetDerivation();
 };
 
 }  // namespace tap_protocol

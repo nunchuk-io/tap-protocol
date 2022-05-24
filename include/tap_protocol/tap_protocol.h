@@ -23,6 +23,10 @@ class TapProtoException : public std::exception {
   static const int ECDH_FAIL = -8;
   static const int XCVC_FAIL = -9;
   static const int UNKNOW_PROTO_VERSION = -10;
+  static const int INVALID_PUBKEY_COMPRESS_LENGTH = -11;
+  static const int NO_PRIVATE_KEY_PICKED = -12;
+
+  static const int UNKNOW_ERROR = -100;
 
  public:
   TapProtoException(int code, std::string message);

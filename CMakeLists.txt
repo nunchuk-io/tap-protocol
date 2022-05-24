@@ -43,7 +43,9 @@ add_library(tap-protocol STATIC
         src/tap_protocol.cpp 
         src/secp256k1_utils.cpp)
 
-target_link_libraries(tap-protocol PRIVATE wally secp256k1)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/cppcodec)
+
+target_link_libraries(tap-protocol PRIVATE wally secp256k1 cppcodec)
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${PROJECT_SOURCE_DIR}/include
@@ -71,6 +73,7 @@ if (BUILD_TESTING)
             tests/transport_test.cpp
             tests/connection_test.cpp
             tests/secp256k1_test.cpp
+            tests/utils_test.cpp
             )
     foreach (file ${files})
         get_filename_component(testcase ${file} NAME_WE)
