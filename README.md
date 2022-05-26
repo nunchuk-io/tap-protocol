@@ -69,16 +69,20 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobject thiz,
                                                                jobject card) {
-    jclass isoDepClass = env->FindClass("android/nfc/tech/IsoDep");
-    jmethodID tranceiveMethodID = env->GetMethodID(isoDepClass, "transceive", "([B)[B");
 
     auto tp = tap_protocol::MakeDefaultTransport([=](const tap_protocol::Bytes &in) {
-    // Dual to NFC only available when a card tap phone
-    // Client must make sure this function only call when this happend
+    // Dual to NFC only available when a card tap phone,
+    // client must make sure this function only get called when card is connected 
+    // 1. Put a popup here and only continue when card is connected 
+    // 2. Implement a queue?
+    // 3. Another way...
 
+        jclass isoDepClass = env->FindClass("android/nfc/tech/IsoDep");
+        jmethodID tranceiveMethodID = env->GetMethodID(isoDepClass, "transceive", "([B)[B");
         auto bytesToSend = env->NewByteArray(in.size());
         env->SetByteArrayRegion(bytesToSend, 0, in.size(), (jbyte *) in.data());
-        auto bytesReceive = (jbyteArray) env->CallObjectMethod(nfca, tranceiveMethodID,
+        
+        auto bytesReceive = (jbyteArray) env->CallObjectMethod(isoDepClass, tranceiveMethodID,
                                                                bytesToSend);
         auto firstByte = env->GetByteArrayElements(bytesReceive, 0);
         tap_protocol::Bytes result((char *) firstByte,
@@ -89,6 +93,8 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
     tap_protocol::TapSigner tapSigner(std::move(tp));
     // Call status
     auto resp = tapSigner.Status();
+
+    __android_log_print(ANDROID_LOG_VERBOSE, "CoolApp", "Request %s", resp.dump(4).c_str());
     
 }
 ```
