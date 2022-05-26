@@ -1,8 +1,8 @@
 #include "tap_protocol/utils.h"
+#include "bitcoin/strencodings.h"
 #include <algorithm>
 #include <cctype>
 #include <climits>
-#include <cppcodec/base32_rfc4648.hpp>
 #include <iterator>
 #include <random>
 
@@ -81,8 +81,7 @@ Bytes CardPubkeyToIdent(const Bytes &card_pubkey) {
 
   pubkey_sha.erase(std::begin(pubkey_sha), std::begin(pubkey_sha) + 8);
 
-  using base32 = cppcodec::base32_rfc4648;
-  auto md = base32::encode(pubkey_sha);
+  auto md = ToUpper(EncodeBase32(pubkey_sha));
 
   static constexpr int IDENT_SIZE = 23;
 
@@ -180,6 +179,5 @@ Bytes PickNonce() {
   std::generate(std::begin(nonce), std::end(nonce), rbe);
   return nonce;
 }
-
 
 }  // namespace tap_protocol

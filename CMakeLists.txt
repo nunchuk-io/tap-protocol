@@ -43,9 +43,7 @@ add_library(tap-protocol STATIC
         src/tap_protocol.cpp 
         src/secp256k1_utils.cpp)
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/cppcodec)
-
-target_link_libraries(tap-protocol PRIVATE wally secp256k1 cppcodec)
+target_link_libraries(tap-protocol PRIVATE wally secp256k1)
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${PROJECT_SOURCE_DIR}/include

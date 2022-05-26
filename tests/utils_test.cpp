@@ -4,6 +4,10 @@
 #include "tap_protocol/tap_protocol.h"
 #include "tap_protocol/utils.h"
 
+// must run emulator first
+// https://github.com/coinkite/coinkite-tap-proto/tree/master/emulator
+// $ ./ecard.py emulate -t
+
 TEST_CASE("test card identity") {
   // Given card
   std::unique_ptr<tap_protocol::Transport> tp =
@@ -15,10 +19,24 @@ TEST_CASE("test card identity") {
   auto ident = tapSigner.GetIdent();
 
   // Then ident must equal emulator card ident
-  constexpr std::string_view emulatorCardIdent = "XDXKQ-W6VW6-GEQI3-ATSC2";
-  auto identSv = std::string_view((const char*)ident.data(), ident.size());
+  const std::string emulatorCardIdent = "XDXKQ-W6VW6-GEQI3-ATSC2";
+  auto identStr = std::string((const char*)ident.data(), ident.size());
+  CAPTURE(emulatorCardIdent);
+  CAPTURE(identStr);
 
-  CHECK(identSv == emulatorCardIdent);
+  CHECK(identStr == emulatorCardIdent);
+}
+
+TEST_CASE("derive tapsigner") {
+  // Given card
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+
+  tap_protocol::TapSigner tapSigner(std::move(tp));
+  // When set derivation path
+  auto resp = tapSigner.Derive("84h/0h/0h", "123456");
+  CHECK(!resp.pubkey.empty());
+  MESSAGE(json(resp).dump(2));
 }
 
 TEST_CASE("test tapsigner derivation path") {
@@ -32,17 +50,6 @@ TEST_CASE("test tapsigner derivation path") {
   // Then return derivation path
   CHECK(!d.empty());
   MESSAGE("derivation = ", d);
-}
-
-TEST_CASE("derive tapsigner") {
-  // Given card
-  std::unique_ptr<tap_protocol::Transport> tp =
-      std::make_unique<CardEmulator>();
-
-  tap_protocol::TapSigner tapSigner(std::move(tp));
-  // When set derivation path
-  json resp = tapSigner.Derive("", "123456");
-  MESSAGE(resp.dump(2));
 }
 
 TEST_CASE("string to path and reverse") {
@@ -81,7 +88,6 @@ TEST_CASE("get xpub") {
   std::string xpub = tapSigner.Xpub("123456", true);
   std::string expected_xpub =
       R"(xpub661MyMwAqRbcEZKCyeR8H1W71xtGnuwZwHd946V3GgckZmErBBkhFoisKzVNJdvrwRuiqXwP9AD6h5LPnwRKkLzofV7B9ecKo7v64G7afnx)";
-  CAPTURE(xpub);
   CHECK(xpub == expected_xpub);
 
   MESSAGE(xpub);
