@@ -56,7 +56,7 @@ inline std::string EncodeBase58(std::basic_string_view<unsigned char> input) {
     input = input.substr(1);
   }
   // Skip leading zeroes in base58 result.
-  std::vector<unsigned char>::iterator it = b58.begin() + (size - length);
+  auto it = b58.begin() + (size - length);
   while (it != b58.end() && *it == 0) it++;
   // Translate the result into a string.
   std::string str;

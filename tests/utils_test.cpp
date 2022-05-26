@@ -52,7 +52,7 @@ TEST_CASE("string to path and reverse") {
       2147483648,
   };
 
-  std::string str_path = "m84h/0h/0h";
+  std::string str_path = "m/84h/0h/0h";
 
   CHECK(tap_protocol::Str2Path(str_path) == path);
   CHECK(str_path == tap_protocol::Path2Str(path));

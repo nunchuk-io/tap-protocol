@@ -97,7 +97,7 @@ Bytes CardPubkeyToIdent(const Bytes &card_pubkey) {
 }
 
 std::string Path2Str(const std::vector<int64_t> &path) {
-  std::string result = "m";
+  std::string result = "m/";
   for (auto it = std::begin(path); it != std::end(path); ++it) {
     int64_t c = (*it & ~HARDENED);
     result += std::to_string(c);
@@ -180,5 +180,6 @@ Bytes PickNonce() {
   std::generate(std::begin(nonce), std::end(nonce), rbe);
   return nonce;
 }
+
 
 }  // namespace tap_protocol
