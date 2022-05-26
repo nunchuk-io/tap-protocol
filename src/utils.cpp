@@ -1,15 +1,27 @@
 #include "tap_protocol/utils.h"
+#include <algorithm>
+#include <cctype>
 #include <climits>
 #include <cppcodec/base32_rfc4648.hpp>
+#include <iterator>
 #include <random>
 
 namespace tap_protocol {
+
+static constexpr int64_t HARDENED = 0x80000000;
+
 std::string Bytes2Str(const Bytes &msg) {
   std::ostringstream result;
   for (auto &&c : msg) {
     result << std::hex << std::setw(2) << std::setfill('0') << int(c);
   }
   return result.str();
+}
+
+std::string ToUpper(std::string str) {
+  std::transform(std::begin(str), std::end(str), std::begin(str),
+                 [](char c) { return std::toupper(c); });
+  return str;
 }
 
 Bytes XORBytes(const Bytes &a, const Bytes &b) {
@@ -85,10 +97,9 @@ Bytes CardPubkeyToIdent(const Bytes &card_pubkey) {
 }
 
 std::string Path2Str(const std::vector<int64_t> &path) {
-  static constexpr int64_t HARDENED = 0x80000000;
   std::string result = "m";
   for (auto it = std::begin(path); it != std::end(path); ++it) {
-    int32_t c = (*it & ~HARDENED);
+    int64_t c = (*it & ~HARDENED);
     result += std::to_string(c);
     if (*it & HARDENED) {
       result += 'h';
@@ -96,6 +107,65 @@ std::string Path2Str(const std::vector<int64_t> &path) {
     if (std::next(it) != std::end(path)) {
       result += '/';
     }
+  }
+  return result;
+}
+
+inline std::vector<std::string> split(const std::string &s, char delim) {
+  std::vector<std::string> result;
+  std::stringstream ss(s);
+  std::string item;
+  while (std::getline(ss, item, delim)) {
+    result.push_back(item);
+  }
+  return result;
+}
+
+std::vector<int64_t> Str2Path(std::string path) {
+  auto path_component_in_range = [](int64_t path) {
+    return 0 <= path && path < HARDENED;
+  };
+
+  std::vector<int64_t> result;
+
+  // Remove 'm' if exists
+  if (!path.empty() && path.front() == 'm') {
+    path.erase(std::begin(path));
+  }
+
+  auto splits = split(path, '/');
+  for (auto &str : splits) {
+    if (str.empty()) {
+      continue;
+    }
+    int64_t num{}, here{};
+    if (char last = std::toupper(str.back());
+        last == 'P' || last == 'H' || last == '\'') {
+      if (str.size() < 2) {
+        throw TapProtoException(TapProtoException::MALFORMED_BIP32_PATH,
+                                "Malformed bip32 path component");
+      }
+      str.pop_back();
+      try {
+        num = std::stoll(str);
+      } catch (std::exception &e) {
+      }
+      if (!path_component_in_range(num)) {
+        throw TapProtoException(TapProtoException::MALFORMED_BIP32_PATH,
+                                "Hardened path component out of range");
+      }
+      here = num | HARDENED;
+    } else {
+      try {
+        here = std::stoll(str);
+      } catch (std::exception &e) {
+      }
+      if (!path_component_in_range(here)) {
+        throw TapProtoException(TapProtoException::MALFORMED_BIP32_PATH,
+                                "Non-Hardened path component out of range");
+      }
+    }
+    result.push_back(here);
   }
   return result;
 }

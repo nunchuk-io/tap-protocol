@@ -9,6 +9,7 @@
 namespace tap_protocol {
 
 std::string Bytes2Str(const Bytes &msg);
+std::string ToUpper(std::string str);
 
 Bytes XORBytes(const Bytes &a, const Bytes &b);
 Bytes operator^(const Bytes &a, const Bytes &b);
@@ -26,6 +27,7 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
 
 Bytes CardPubkeyToIdent(const Bytes &card_pubkey);
 std::string Path2Str(const std::vector<int64_t> &path);
+std::vector<int64_t> Str2Path(std::string path);
 Bytes PickNonce();
 
 }  // namespace tap_protocol

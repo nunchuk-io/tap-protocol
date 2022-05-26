@@ -2,6 +2,7 @@
 #define CKTAPCARD_H
 
 #include <memory>
+#include "nlohmann/json.hpp"
 #include "transport.h"
 
 // NFCISO7816Tag for iOS
@@ -51,7 +52,21 @@ class TapSigner : public CKTapCard {
   using CKTapCard::CKTapCard;
 
  public:
-  json Derive(const std::string& path, const std::string& cvc);
+  struct DeriveResponse {
+    nlohmann::json::binary_t sig;
+    nlohmann::json::binary_t chain_code;
+    nlohmann::json::binary_t master_pubkey;
+    nlohmann::json::binary_t pubkey;
+    nlohmann::json::binary_t card_nonce;
+
+    friend void to_json(nlohmann::json& j, const DeriveResponse& t);
+    friend void from_json(const nlohmann::json& j, DeriveResponse& t);
+  };
+
+  DeriveResponse Derive(const std::string& path, const std::string& cvc);
+  std::string GetXFP(const std::string& cvc);
+  std::string Xpub(const std::string& cvc, bool master);
+  std::string Pubkey(const std::string& cvc);
   std::string GetDerivation();
 };
 

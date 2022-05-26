@@ -2,7 +2,7 @@
 set -e
 
 cd ./third_party/libwally-core
-#$PWD/tools/cleanup.sh && $PWD/tools/autogen.sh
+$PWD/tools/cleanup.sh && $PWD/tools/autogen.sh
 
 PREFIX="$PWD/lib/"
 echo "Install $PREFIX"

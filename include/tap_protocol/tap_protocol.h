@@ -25,6 +25,9 @@ class TapProtoException : public std::exception {
   static const int UNKNOW_PROTO_VERSION = -10;
   static const int INVALID_PUBKEY_COMPRESS_LENGTH = -11;
   static const int NO_PRIVATE_KEY_PICKED = -12;
+  static const int MALFORMED_BIP32_PATH = -13;
+  static const int INVALID_HASH_LENGTH = -14;
+  static const int SIG_VERIFY_ERROR = -15;
 
   static const int UNKNOW_ERROR = -100;
 
