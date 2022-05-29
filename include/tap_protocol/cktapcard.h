@@ -6,7 +6,7 @@
 #include "transport.h"
 
 // NFCISO7816Tag for iOS
-// NfcA for Android
+// IsoDep for Android
 
 namespace tap_protocol {
 
@@ -30,6 +30,14 @@ class CKTapCard {
     friend void from_json(const nlohmann::json& j, StatusResponse& t);
   };
 
+  struct NewResponse {
+    int slot{};
+    nlohmann::json::binary_t card_nonce;
+
+    friend void to_json(nlohmann::json& j, const NewResponse& t);
+    friend void from_json(const nlohmann::json& j, NewResponse& t);
+  };
+
   nlohmann::json Send(const nlohmann::json& msg);
   std::pair<Bytes, nlohmann::json> SendAuth(const nlohmann::json& msg,
                                             const Bytes& cvc = {});
@@ -37,6 +45,11 @@ class CKTapCard {
 
   virtual StatusResponse Status();
   virtual std::string NFC();
+  virtual NewResponse New(const Bytes& chain_code, const std::string& cvc,
+                          int slot = 0) = 0;
+  virtual std::string CertificateCheck();
+  virtual Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
+                     const std::string& subpath = {}) = 0;
 
  protected:
   void FirstLook();
@@ -63,11 +76,34 @@ class TapSigner : public CKTapCard {
     friend void from_json(const nlohmann::json& j, DeriveResponse& t);
   };
 
+  struct ChangeResponse {
+    bool success{};
+    nlohmann::json::binary_t card_nonce;
+
+    friend void to_json(nlohmann::json& j, const ChangeResponse& t);
+    friend void from_json(const nlohmann::json& j, ChangeResponse& t);
+  };
+
+  struct BackupResponse {
+    nlohmann::json::binary_t data;
+    nlohmann::json::binary_t card_nonce;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(BackupResponse, data, card_nonce);
+  };
+
   DeriveResponse Derive(const std::string& path, const std::string& cvc);
   std::string GetXFP(const std::string& cvc);
   std::string Xpub(const std::string& cvc, bool master);
   std::string Pubkey(const std::string& cvc);
   std::string GetDerivation();
+  ChangeResponse Change(const std::string& new_cvc, const std::string& cvc);
+  BackupResponse Backup(const std::string& cvc);
+  NewResponse New(const Bytes& chain_code, const std::string& cvc,
+                  int slot = 0) override;
+  Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
+             const std::string& subpath = {}) override;
+  Bytes SignMessage(const Bytes& msg, const std::string& cvc,
+                    const std::string& subpath = {});
 };
 
 }  // namespace tap_protocol

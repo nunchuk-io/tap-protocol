@@ -8,8 +8,10 @@ static constexpr unsigned char CLA = 0x00;
 static constexpr unsigned char INS = 0xcb;
 static constexpr unsigned char P1 = 0x0;
 static constexpr unsigned char P2 = 0x0;
-static const Bytes APP_ID = {0xf0, 0x43, 0x6f, 0x69, 0x6e, 0x6b, 0x69, 0x74,
-                             0x65, 0x43, 0x41, 0x52, 0x44, 0x76, 0x31};
+static const Bytes APP_ID = {
+    0xf0, 0x43, 0x6f, 0x69, 0x6e, 0x6b, 0x69, 0x74,
+    0x65, 0x43, 0x41, 0x52, 0x44, 0x76, 0x31,
+};
 
 namespace detail {
 static std::vector<char> SizeToLC(size_t size) {
@@ -19,8 +21,6 @@ static std::vector<char> SizeToLC(size_t size) {
   return {static_cast<char>((size & 0xff00) >> 8),
           static_cast<char>((size & 0xff))};
 }
-
-
 
 static Bytes MakeAPDURequest(const Bytes &msg, char cla = CLA, char ins = INS,
                              char p1 = P1, char p2 = P2) {
@@ -55,6 +55,10 @@ static bool IsSWOk(const Bytes &bytes) {
 
 TransportImpl::TransportImpl(SendReceiveFunction send_receive_func)
     : send_receive_func_(std::move(send_receive_func)) {
+  ISOAppSelect();
+}
+
+void TransportImpl::ISOAppSelect() {
   const auto request = detail::MakeAPDURequest(APP_ID, 0x00, 0xa4, 0x4);
   Bytes response = send_receive_func_(request);
   if (!detail::IsSWOk(response)) {
@@ -65,6 +69,7 @@ TransportImpl::TransportImpl(SendReceiveFunction send_receive_func)
 
 json TransportImpl::Send(const json &msg) {
   try {
+    // TODO: ISO app select here?
     const auto request = detail::MakeAPDURequest(json::to_cbor(msg));
     Bytes response = send_receive_func_(request);
     if (!detail::IsSWOk(response)) {

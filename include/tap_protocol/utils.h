@@ -1,12 +1,13 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <wally_crypto.h>
 #include "tap_protocol/tap_protocol.h"
 #include "tap_protocol/secp256k1_utils.h"
 #include "nlohmann/json.hpp"
 
 namespace tap_protocol {
+
+static constexpr int64_t HARDENED = 0x80000000;
 
 std::string Bytes2Str(const Bytes &msg);
 std::string ToUpper(std::string str);

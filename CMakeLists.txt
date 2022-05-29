@@ -36,12 +36,15 @@ add_library(tap-protocol STATIC
         include/tap_protocol/tap_protocol.h
         include/tap_protocol/utils.h
         include/tap_protocol/secp256k1_utils.h
+        include/tap_protocol/hash_utils.h
         src/utils.cpp
         src/secp256k1_utils.cpp
         src/cktapcard.cpp
         src/transport.cpp
         src/tap_protocol.cpp 
-        src/secp256k1_utils.cpp)
+        src/secp256k1_utils.cpp
+        src/hash_utils.cpp
+        )
 
 target_link_libraries(tap-protocol PRIVATE wally secp256k1)
 

@@ -28,6 +28,8 @@ class TapProtoException : public std::exception {
   static const int MALFORMED_BIP32_PATH = -13;
   static const int INVALID_HASH_LENGTH = -14;
   static const int SIG_VERIFY_ERROR = -15;
+  static const int INVALID_DIGEST_LENGTH = -16;
+  static const int INVALID_PATH_LENGTH = -17;
 
   static const int UNKNOW_ERROR = -100;
 

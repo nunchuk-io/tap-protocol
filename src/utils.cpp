@@ -1,14 +1,12 @@
 #include "tap_protocol/utils.h"
+#include "tap_protocol/hash_utils.h"
 #include "bitcoin/strencodings.h"
 #include <algorithm>
 #include <cctype>
 #include <climits>
-#include <iterator>
 #include <random>
 
 namespace tap_protocol {
-
-static constexpr int64_t HARDENED = 0x80000000;
 
 std::string Bytes2Str(const Bytes &msg) {
   std::ostringstream result;
@@ -46,22 +44,14 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
 
   Bytes session_key = CT_ecdh(his_pubkey, my_privkey);
 
-  Bytes md(SHA256_LEN);
-
   Bytes to_be_hashed(card_nonce);
   to_be_hashed.insert(std::end(to_be_hashed), std::begin(cmd), std::end(cmd));
 
-  if (int code = wally_sha256(to_be_hashed.data(), to_be_hashed.size(),
-                              md.data(), md.size());
-      code != WALLY_OK) {
-    throw TapProtoException(TapProtoException::XCVC_FAIL,
-                            "Calculate XCVC fail");
-  }
-
+  const Bytes md = SHA256(to_be_hashed);
   Bytes mask = XORBytes(session_key, md);
   mask.resize(cvc.size());
 
-  Bytes xcvc = XORBytes(cvc, mask);
+  const Bytes xcvc = XORBytes(cvc, mask);
   return XCVC{.session_key = session_key, .epubkey = my_pubkey, .xcvc = xcvc};
 }
 
@@ -71,14 +61,7 @@ Bytes CardPubkeyToIdent(const Bytes &card_pubkey) {
                             "Expecting compressed pubkey");
   }
 
-  Bytes pubkey_sha(SHA256_LEN);
-  if (int code = wally_sha256(card_pubkey.data(), card_pubkey.size(),
-                              pubkey_sha.data(), SHA256_LEN);
-      code != WALLY_OK) {
-    throw TapProtoException(TapProtoException::UNKNOW_ERROR,
-                            "SHA error wally_code = " + std::to_string(code));
-  }
-
+  Bytes pubkey_sha = SHA256(card_pubkey);
   pubkey_sha.erase(std::begin(pubkey_sha), std::begin(pubkey_sha) + 8);
 
   auto md = ToUpper(EncodeBase32(pubkey_sha));
@@ -96,7 +79,7 @@ Bytes CardPubkeyToIdent(const Bytes &card_pubkey) {
 }
 
 std::string Path2Str(const std::vector<int64_t> &path) {
-  std::string result = "m/";
+  std::string result = path.empty() ? "" : "m/";
   for (auto it = std::begin(path); it != std::end(path); ++it) {
     int64_t c = (*it & ~HARDENED);
     result += std::to_string(c);
