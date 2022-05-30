@@ -82,7 +82,7 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
         auto bytesToSend = env->NewByteArray(in.size());
         env->SetByteArrayRegion(bytesToSend, 0, in.size(), (jbyte *) in.data());
         
-        auto bytesReceive = (jbyteArray) env->CallObjectMethod(isoDepClass, tranceiveMethodID,
+        auto bytesReceive = (jbyteArray) env->CallObjectMethod(card, tranceiveMethodID,
                                                                bytesToSend);
         auto firstByte = env->GetByteArrayElements(bytesReceive, 0);
         tap_protocol::Bytes result((char *) firstByte,
@@ -94,7 +94,7 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
     // Call status
     auto resp = tapSigner.Status();
 
-    __android_log_print(ANDROID_LOG_VERBOSE, "CoolApp", "Request %s", resp.dump(4).c_str());
+    __android_log_print(ANDROID_LOG_VERBOSE, "CoolApp", "Status response %s", resp.dump(4).c_str());
     
 }
 ```
