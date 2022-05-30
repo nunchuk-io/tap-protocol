@@ -1,6 +1,7 @@
 #include <doctest.h>
 #include <iostream>
 #include <string>
+#include "emulator.h"
 #include "tap_protocol/transport.h"
 
 using json = nlohmann::json;
@@ -55,4 +56,14 @@ TEST_CASE("decode cbor ok") {
   auto resp = tp->Send({{"cmd", "status"}});
 
   CHECK(resp == j);
+}
+
+TEST_CASE("ios transport") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+  tap_protocol::TapSigner tapSigner(std::move(tp));
+
+  auto st = tapSigner.Status();
+
+  MESSAGE(json(st).dump(2));
 }

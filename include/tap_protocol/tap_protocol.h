@@ -11,6 +11,19 @@ using Bytes = std::vector<unsigned char>;
 
 using SendReceiveFunction = std::function<Bytes(const Bytes &msg)>;
 
+// Convenient for iOS
+struct APDURequest {
+  unsigned char cla, ins, p1, p2;
+  Bytes data;
+};
+
+struct APDUResponse {
+  Bytes data;
+  unsigned char sw1, sw2;
+};
+using SendReceiveFunctionIOS =
+    std::function<APDUResponse(const APDURequest &req)>;
+
 class TapProtoException : public std::exception {
  public:
   static const int SERIALIZE_ERROR = -1;

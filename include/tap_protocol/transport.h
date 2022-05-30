@@ -27,6 +27,7 @@ class TransportImpl : public Transport {
 };
 
 std::unique_ptr<Transport> MakeDefaultTransport(SendReceiveFunction func);
+std::unique_ptr<Transport> MakeDefaultTransportIOS(SendReceiveFunctionIOS func);
 
 }  // namespace tap_protocol
 

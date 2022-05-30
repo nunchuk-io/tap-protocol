@@ -1,5 +1,6 @@
 #include "tap_protocol/transport.h"
 #include <iostream>
+#include <iterator>
 
 namespace tap_protocol {
 static constexpr unsigned char SW_OKAY_1 = 0x90;
@@ -86,5 +87,22 @@ json TransportImpl::Send(const json &msg) {
 
 std::unique_ptr<Transport> MakeDefaultTransport(SendReceiveFunction func) {
   return std::make_unique<TransportImpl>(func);
+}
+
+std::unique_ptr<Transport> MakeDefaultTransportIOS(
+    SendReceiveFunctionIOS func) {
+  return std::make_unique<TransportImpl>(
+      [f = std::move(func)](const Bytes &req) {
+        APDUResponse resp =
+            f(APDURequest{.cla = req[0],
+                          .ins = req[1],
+                          .p1 = req[2],
+                          .p2 = req[3],
+                          .data = {std::begin(req) + 4, std::end(req)}});
+        Bytes result(std::begin(resp.data), std::end(resp.data));
+        result.push_back(resp.sw1);
+        result.push_back(resp.sw2);
+        return result;
+      });
 }
 }  // namespace tap_protocol
