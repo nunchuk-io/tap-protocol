@@ -1,0 +1,3 @@
+[submodule "app/src/main/cpp/tap-protocol"]
+	path = app/src/main/cpp/tap-protocol
+	url = https://github.com/nunchuk-io/tap-protocol
