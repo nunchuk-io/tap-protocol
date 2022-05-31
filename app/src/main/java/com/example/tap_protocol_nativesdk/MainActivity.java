@@ -47,21 +47,20 @@ public class MainActivity extends AppCompatActivity {
         TextView tv = binding.sampleText;
         TextView tv2 = binding.sampleText2;
 
+        IsoDep isoDep = IsoDep.get(tag);
+
         try {
-            IsoDep isoDep = IsoDep.get(tag);
-//            isoDep.setTimeout(2500);
-            IsoDepHolder.init(isoDep);
+            isoDep.setTimeout(2500);
+            isoDep.connect();
 
             Log.d("NFC", "tag connected");
-            if (IsoDepHolder.isConnected()) {
-                addTapSigner();
-                String status = tapSignerStatus();
+            if (isoDep.isConnected()) {
+
+                String status = tapSignerStatus(isoDep);
                 tv.setText(status);
 
-                String certs = tapSignerCerts();
-                tv2.setText(certs);
-            } else {
-
+//                String certs = tapSignerCerts(isoDep);
+//                tv2.setText(certs);
             }
 
         } catch (TagLostException e) {
@@ -77,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
         } finally {
             Log.d("NFC", "closing tag");
             try {
-                IsoDepHolder.close();
+                isoDep.close();
             } catch (IOException e) {
 
             }
@@ -136,8 +135,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 TextView tv = binding.sampleText2;
-                String certs = tapSignerCerts();
-                tv.setText(certs);
+//                String certs = tapSignerCerts();
+//                tv.setText(certs);
             }
         });
         tv.setText(stringFromJNI());
@@ -149,9 +148,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public native String stringFromJNI();
 
-    public native void addTapSigner();
+    public native String tapSignerStatus(IsoDep isoDep);
 
-    public native String tapSignerStatus();
-
-    public native String tapSignerCerts();
+    public native String tapSignerCerts(IsoDep isoDep);
 }

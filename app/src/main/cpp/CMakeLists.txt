@@ -43,7 +43,8 @@ add_subdirectory(tap-protocol)
 
 target_link_libraries( # Specifies the target library.
         tap_protocol_nativesdk
-        tap-protocol
+        PRIVATE ${log-lib}
+        PUBLIC -Wl,--start-group tap-protocol
         # Links the target library to the log library
         # included in the NDK.
-        ${log-lib})
+        )
