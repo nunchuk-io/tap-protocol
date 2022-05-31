@@ -74,13 +74,13 @@ function android_build_wally() {
     local target=$(android_get_cross_compile_target $arch)
 
     # Configure and build.
-    export AR=$toolsdir/bin/$target-ar
-    export AS=$toolsdir/bin/$target-as
+    export AR=$toolsdir/bin/llvm-ar
+    export AS=$toolsdir/bin/$target$api-clang
     export CC=$toolsdir/bin/$target$api-clang
     export CXX=$toolsdir/bin/$target$api-clang++
-    export LD=$toolsdir/bin/$target-ld
-    export RANLIB=$toolsdir/bin/$target-ranlib
-    export STRIP=$toolsdir/bin/$target-strip
+    export LD=$toolsdir/bin/ld
+    export RANLIB=$toolsdir/bin/llvm-ranlib
+    export STRIP=$toolsdir/bin/llvm-strip
 
     PREFIX="$PWD/android/$arch"
     #EPREFIX="$PWD/android/$arch/secp256k1"
@@ -89,7 +89,7 @@ function android_build_wally() {
 
     #./configure --prefix=$PREFIX --host=$(android_get_cross_compile_triplet $arch $api) \
     #  --disable-swig-python --enable-static --enable-standard-secp $useropts
-    ./configure --prefix=$PREFIX --host=$target --disable-benchmark \
+    ./configure --prefix=$PREFIX --host=$target --disable-benchmark --disable-tests --disable-shared \
       --disable-swig-python --enable-static --enable-standard-secp $useropts
     local num_jobs=4
     if [ -f /proc/cpuinfo ]; then
