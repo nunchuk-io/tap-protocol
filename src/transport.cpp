@@ -70,7 +70,6 @@ void TransportImpl::ISOAppSelect() {
 
 json TransportImpl::Send(const json &msg) {
   try {
-    // TODO: ISO app select here?
     const auto request = detail::MakeAPDURequest(json::to_cbor(msg));
     Bytes response = send_receive_func_(request);
     if (!detail::IsSWOk(response)) {

@@ -19,12 +19,18 @@ target_link_libraries("${PROJECT_NAME}" PUBLIC tap-protocol)
 
 ## Build libwally-core ([detail](https://github.com/ElementsProject/libwally-core#building))
 ```
-# For android
-# you may wanna export ANDROID_NDK=/path/to/android-ndk
+# For Android
+# https://github.com/ElementsProject/libwally-core#android
+# you may wanna export ANDROID_NDK=/path/to/android-ndk # r22 is the minimum supported version
+$ cd third_party/libwally-core
 $ ./tools/build_android_libraries.sh
 
-# For linux
-$ ./tools/build_unix_libraries.sh
+# For Linux, MacOS, iOS
+# https://github.com/ElementsProject/libwally-core#building
+$ cd third_party/libwally-core
+$ ./tools/autogen.sh
+$ ./configure --disable-tests
+$ make
 ```
 
 # Use with JNI

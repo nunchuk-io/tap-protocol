@@ -194,4 +194,3 @@ TEST_CASE("sign digest") {
   CHECK(!resp.empty());
   MESSAGE("signed:", tap_protocol::Bytes2Str(resp));
 }
-

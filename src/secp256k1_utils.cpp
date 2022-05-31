@@ -3,7 +3,6 @@
 #include <climits>
 #include <memory>
 #include <random>
-#include <secp256k1.h>
 #include <iostream>
 #include <wally_crypto.h>
 #include "tap_protocol/secp256k1_utils.h"
