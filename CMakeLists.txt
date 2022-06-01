@@ -45,8 +45,10 @@ add_library(tap-protocol STATIC
         src/hwi_tapsigner.cpp
         )
 
+add_subdirectory(third_party/bitcoin-core)
+
 target_link_libraries(tap-protocol 
-        PRIVATE wally
+        PRIVATE wally bitcoin-core
         )
 
 target_include_directories(${PROJECT_NAME}
@@ -70,6 +72,7 @@ if (BUILD_TESTING)
 
     target_include_directories(test_main
             PUBLIC ${PROJECT_SOURCE_DIR}/tests/third_party/doctest
+            PUBLIC ${Boost_INCLUDE_DIRS}
             )
     target_link_libraries(test_main ${Boost_LIBRARIES})
 

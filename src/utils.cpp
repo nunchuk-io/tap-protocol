@@ -1,6 +1,7 @@
 #include "tap_protocol/utils.h"
 #include "tap_protocol/hash_utils.h"
-#include "bitcoin/strencodings.h"
+//#include "bitcoin/strencodings.h"
+#include <util/strencodings.h>
 #include <algorithm>
 #include <cctype>
 #include <climits>

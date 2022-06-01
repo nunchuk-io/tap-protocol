@@ -1,7 +1,8 @@
 #include <memory>
 #include <string>
+#include <base58.h>
+#include <util/strencodings.h>
 #include "tap_protocol/cktapcard.h"
-#include "bitcoin/base58.h"
 #include "tap_protocol/hash_utils.h"
 #include "tap_protocol/utils.h"
 

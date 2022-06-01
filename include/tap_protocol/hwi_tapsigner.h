@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include "tap_protocol/cktapcard.h"
 #include "tap_protocol/tap_protocol.h"
 
 namespace tap_protocol {
@@ -12,16 +13,19 @@ class HWITapsigerException : public TapProtoException {
   using TapProtoException::TapProtoException;
 
   static const int PSBT_PARSE_ERROR = -1000;
+  static const int PSBT_INVALID = -1001;
 };
 
-class HWITapsiger {
+class HWITapSiger {
  public:
-  HWITapsiger() = default;
+  HWITapSiger() = default;
 
-  virtual std::string SignTx(const std::string &psbt) = 0;
+  virtual std::string SignTx(const std::string &base64_psbt) = 0;
+  virtual std::string GetMasterFingerprint() = 0;
+
 };
 
-std::unique_ptr<HWITapsiger> MakeHWITapsigner();
+std::unique_ptr<HWITapSiger> MakeHWITapSigner();
 
 }  // namespace tap_protocol
 
