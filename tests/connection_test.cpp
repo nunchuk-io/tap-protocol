@@ -6,10 +6,10 @@ TEST_CASE("tapsigner status emulator") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
 
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapsigner(std::move(tp));
 
   // When call 'status'
-  auto resp = tapSigner.Status();
+  auto resp = tapsigner.Status();
 
   // Then return proto version = 1
   CHECK(resp.proto == 1);
@@ -22,10 +22,10 @@ TEST_CASE("get nfc url") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
 
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapsigner(std::move(tp));
 
   // When call 'nfc'
-  auto resp = tapSigner.NFC();
+  auto resp = tapsigner.NFC();
 
   // Then return url start with "https://tapsigner.com"
   const std::string url = "https://tapsigner.com";

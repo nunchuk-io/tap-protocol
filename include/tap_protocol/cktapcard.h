@@ -23,7 +23,7 @@ class CKTapCard {
     nlohmann::json::binary_t pubkey;
     nlohmann::json::binary_t card_nonce;
     bool tapsigner{};
-    std::vector<int64_t> path;
+    std::vector<uint32_t> path;
     bool testnet{};
 
     friend void to_json(nlohmann::json& j, const StatusResponse& t);
@@ -61,7 +61,7 @@ class CKTapCard {
   nlohmann::json::binary_t card_ident_;
 };
 
-class TapSigner : public CKTapCard {
+class Tapsigner : public CKTapCard {
   using CKTapCard::CKTapCard;
 
  public:

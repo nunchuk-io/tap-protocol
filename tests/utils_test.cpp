@@ -17,7 +17,7 @@
 TEST_CASE("set up new card") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
 
   if (tapSigner.Status().path.empty()) {
     // setup new card
@@ -29,10 +29,17 @@ TEST_CASE("set up new card") {
     tap_protocol::Bytes chain_code_hash =
         tap_protocol::SHA256d(random_chain_code);
 
-    json newResp = tapSigner.New(chain_code_hash, "123456", 0);
-    MESSAGE("new resp:", newResp.dump(2));
+    json newResp;
 
-    CHECK(!tap_protocol::CKTapCard::NewResponse(newResp).card_nonce.empty());
+    CHECK_THROWS_AS({ newResp = tapSigner.New(chain_code_hash, "123456", 0); },
+                    tap_protocol::TapProtoException);
+
+    MESSAGE("new resp:", newResp.dump(2));
+    bool check =
+        newResp.empty() ||
+        !tap_protocol::CKTapCard::NewResponse(newResp).card_nonce.empty();
+    CHECK(check);
+
   } else {
     MESSAGE("card is already setup, and ready to use");
     // already setup
@@ -44,7 +51,7 @@ TEST_CASE("test card identity") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
 
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
 
   // When get ident
   auto ident = tapSigner.GetIdent();
@@ -63,7 +70,7 @@ TEST_CASE("derive tapsigner") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
 
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
   // When set derivation path
   auto resp = tapSigner.Derive("84h/0h/0h", "123456");
 
@@ -77,7 +84,7 @@ TEST_CASE("test tapsigner derivation path") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
 
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
   // When get derivation path
   std::string d = tapSigner.GetDerivation();
   // Then return derivation path
@@ -86,7 +93,7 @@ TEST_CASE("test tapsigner derivation path") {
 }
 
 TEST_CASE("string to path and reverse") {
-  std::vector<int64_t> path{
+  std::vector<uint32_t> path{
       2147483732,
       2147483648,
       2147483648,
@@ -102,10 +109,12 @@ TEST_CASE("get xfp") {
   // Given card
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
 
   // When call get xfp
   std::string xfp = tapSigner.GetXFP("123456");
+
+  MESSAGE("xfp:", xfp);
 
   // Then return a valid xfp
   CHECK(xfp.size() == 8);
@@ -115,7 +124,7 @@ TEST_CASE("get xpub") {
   // Given card
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
   // When call get xpub
 
   std::string xpub = tapSigner.Xpub("123456", true);
@@ -130,7 +139,7 @@ TEST_CASE("get pubkey") {
   // Given card
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
   // When call get pubkey
 
   auto pubkey = tapSigner.Pubkey("123456");
@@ -153,10 +162,12 @@ TEST_CASE("binary string") {
 TEST_CASE("backup then change cvc") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
 
   json backupResp = tapSigner.Backup("123456");
   MESSAGE("backup:", backupResp.dump(2));
+  MESSAGE("backup data:",
+          tap_protocol::Bytes2Str(backupResp["data"].get<json::binary_t>()));
   CHECK(!backupResp["data"].get<json::binary_t>().empty());
 
   json changeResp = tapSigner.Change("654321", "123456");
@@ -170,7 +181,7 @@ TEST_CASE("backup then change cvc") {
 TEST_CASE("check certs") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
 
   CHECK_THROWS_AS(
       {
@@ -183,7 +194,7 @@ TEST_CASE("check certs") {
 TEST_CASE("sign digest") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
-  tap_protocol::TapSigner tapSigner(std::move(tp));
+  tap_protocol::Tapsigner tapSigner(std::move(tp));
 
   std::string msg = "nunchuk!!!";
   // bd8c9c3b2285e518c6f31f0692e4395276ca141dde4fbe9dc69baf74f2a3143b

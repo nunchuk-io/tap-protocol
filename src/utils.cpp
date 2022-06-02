@@ -6,6 +6,7 @@
 #include <cctype>
 #include <climits>
 #include <random>
+#include <string>
 
 namespace tap_protocol {
 
@@ -79,10 +80,10 @@ Bytes CardPubkeyToIdent(const Bytes &card_pubkey) {
   return ident;
 }
 
-std::string Path2Str(const std::vector<int64_t> &path) {
+std::string Path2Str(const std::vector<uint32_t> &path) {
   std::string result = path.empty() ? "" : "m/";
   for (auto it = std::begin(path); it != std::end(path); ++it) {
-    int64_t c = (*it & ~HARDENED);
+    uint32_t c = (*it & ~HARDENED);
     result += std::to_string(c);
     if (*it & HARDENED) {
       result += 'h';
@@ -104,12 +105,12 @@ inline std::vector<std::string> split(const std::string &s, char delim) {
   return result;
 }
 
-std::vector<int64_t> Str2Path(std::string path) {
-  auto path_component_in_range = [](int64_t path) {
+std::vector<uint32_t> Str2Path(std::string path) {
+  auto path_component_in_range = [](uint32_t path) {
     return 0 <= path && path < HARDENED;
   };
 
-  std::vector<int64_t> result;
+  std::vector<uint32_t> result;
 
   // Remove 'm' if exists
   if (!path.empty() && path.front() == 'm') {
@@ -121,7 +122,7 @@ std::vector<int64_t> Str2Path(std::string path) {
     if (str.empty()) {
       continue;
     }
-    int64_t num{}, here{};
+    uint32_t num{}, here{};
     if (char last = std::toupper(str.back());
         last == 'P' || last == 'H' || last == '\'') {
       if (str.size() < 2) {
@@ -130,7 +131,7 @@ std::vector<int64_t> Str2Path(std::string path) {
       }
       str.pop_back();
       try {
-        num = std::stoll(str);
+        num = std::stoul(str);
       } catch (std::exception &e) {
       }
       if (!path_component_in_range(num)) {
@@ -140,7 +141,7 @@ std::vector<int64_t> Str2Path(std::string path) {
       here = num | HARDENED;
     } else {
       try {
-        here = std::stoll(str);
+        here = std::stoul(str);
       } catch (std::exception &e) {
       }
       if (!path_component_in_range(here)) {

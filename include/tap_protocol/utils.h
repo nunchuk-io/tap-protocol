@@ -27,8 +27,9 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
               const nlohmann::json::binary_t &his_pubkey, const Bytes &cvc);
 
 Bytes CardPubkeyToIdent(const Bytes &card_pubkey);
-std::string Path2Str(const std::vector<int64_t> &path);
-std::vector<int64_t> Str2Path(std::string path);
+std::string Path2Str(const std::vector<uint32_t> &path);
+std::vector<uint32_t> Str2Path(std::string path);
+
 Bytes PickNonce();
 
 }  // namespace tap_protocol

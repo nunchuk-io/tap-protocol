@@ -96,12 +96,11 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
         env->ReleaseByteArrayElements(bytesToSend, firstByte, JNI_ABORT);
         return result;
     });
-    tap_protocol::TapSigner tapSigner(std::move(tp));
+    tap_protocol::Tapsigner tapsigner(std::move(tp));
     // Call status
-    auto resp = tapSigner.Status();
+    auto resp = tapsigner.Status();
 
     __android_log_print(ANDROID_LOG_VERBOSE, "CoolApp", "Status response %s", resp.dump(4).c_str());
-    
 }
 ```
 

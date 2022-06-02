@@ -170,7 +170,7 @@ void from_json(const json& j, CKTapCard::StatusResponse& t) {
 
 // Tapsigner
 
-void to_json(json& j, const TapSigner::DeriveResponse& t) {
+void to_json(json& j, const Tapsigner::DeriveResponse& t) {
   j = {
       {"sig", t.sig},
       {"chain_code", t.chain_code},
@@ -180,7 +180,7 @@ void to_json(json& j, const TapSigner::DeriveResponse& t) {
   };
 }
 
-void from_json(const json& j, TapSigner::DeriveResponse& t) {
+void from_json(const json& j, Tapsigner::DeriveResponse& t) {
   t.sig = j.value("sig", t.sig);
   t.chain_code = j.value("chain_code", t.chain_code);
   t.master_pubkey = j.value("master_pubkey", t.master_pubkey);
@@ -188,30 +188,30 @@ void from_json(const json& j, TapSigner::DeriveResponse& t) {
   t.card_nonce = j.value("card_nonce", t.card_nonce);
 }
 
-void to_json(nlohmann::json& j, const TapSigner::NewResponse& t) {
+void to_json(nlohmann::json& j, const Tapsigner::NewResponse& t) {
   j = {
       {"slot", t.slot},
       {"card_nonce", t.card_nonce},
   };
 }
 
-void from_json(const nlohmann::json& j, TapSigner::NewResponse& t) {
+void from_json(const nlohmann::json& j, Tapsigner::NewResponse& t) {
   t.slot = j.value("slot", t.slot);
   t.card_nonce = j.value("card_nonce", t.card_nonce);
 }
 
-void to_json(nlohmann::json& j, const TapSigner::ChangeResponse& t) {
+void to_json(nlohmann::json& j, const Tapsigner::ChangeResponse& t) {
   j = {
       {"success", t.success},
       {"card_nonce", t.card_nonce},
   };
 }
-void from_json(const nlohmann::json& j, TapSigner::ChangeResponse& t) {
+void from_json(const nlohmann::json& j, Tapsigner::ChangeResponse& t) {
   t.success = j.value("success", t.success);
   t.card_nonce = j.value("card_nonce", t.card_nonce);
 }
 
-std::string TapSigner::GetDerivation() {
+std::string Tapsigner::GetDerivation() {
   const auto status = Status();
   if (status.path.empty()) {
     throw TapProtoException(TapProtoException::NO_PRIVATE_KEY_PICKED,
@@ -220,9 +220,9 @@ std::string TapSigner::GetDerivation() {
   return Path2Str(status.path);
 }
 
-TapSigner::DeriveResponse TapSigner::Derive(const std::string& path,
+Tapsigner::DeriveResponse Tapsigner::Derive(const std::string& path,
                                             const std::string& cvc) {
-  const std::vector<int64_t> path_value = Str2Path(path);
+  const std::vector<uint32_t> path_value = Str2Path(path);
 
   const json request = {
       {"cmd", "derive"},
@@ -234,7 +234,7 @@ TapSigner::DeriveResponse TapSigner::Derive(const std::string& path,
   return resp;
 }
 
-std::string TapSigner::GetXFP(const std::string& cvc) {
+std::string Tapsigner::GetXFP(const std::string& cvc) {
   const auto [_, resp] = SendAuth({{"cmd", "xpub"}, {"master", true}},
                                   {std::begin(cvc), std::end(cvc)});
   json::binary_t xpub = resp["xpub"];
@@ -245,7 +245,7 @@ std::string TapSigner::GetXFP(const std::string& cvc) {
   return ToUpper(Bytes2Str(xpub_hash));
 }
 
-std::string TapSigner::Xpub(const std::string& cvc, bool master) {
+std::string Tapsigner::Xpub(const std::string& cvc, bool master) {
   const auto [_, resp] = SendAuth({{"cmd", "xpub"}, {"master", master}},
                                   {std::begin(cvc), std::end(cvc)});
   Bytes xpub = resp["xpub"].get<json::binary_t>();
@@ -256,7 +256,7 @@ std::string TapSigner::Xpub(const std::string& cvc, bool master) {
   return EncodeBase58({xpub.data(), xpub.size()});
 }
 
-std::string TapSigner::Pubkey(const std::string& cvc) {
+std::string Tapsigner::Pubkey(const std::string& cvc) {
   auto recover_pubkey = [](const json& status, const json& read,
                            const Bytes& nonce, const Bytes& session_key) {
     const json::binary_t card_nonce = status["card_nonce"];
@@ -297,7 +297,7 @@ std::string TapSigner::Pubkey(const std::string& cvc) {
   return Bytes2Str(ret);
 }
 
-TapSigner::ChangeResponse TapSigner::Change(const std::string& new_cvc,
+Tapsigner::ChangeResponse Tapsigner::Change(const std::string& new_cvc,
                                             const std::string& cvc) {
   if (new_cvc.size() < 6 || new_cvc.size() > 32) {
     throw TapProtoException(TapProtoException::INVALID_CVC_LENGTH,
@@ -310,13 +310,13 @@ TapSigner::ChangeResponse TapSigner::Change(const std::string& new_cvc,
   return resp;
 }
 
-TapSigner::BackupResponse TapSigner::Backup(const std::string& cvc) {
+Tapsigner::BackupResponse Tapsigner::Backup(const std::string& cvc) {
   const auto [_, resp] =
       SendAuth({{"cmd", "backup"}}, {std::begin(cvc), std::end(cvc)});
   return resp;
 }
 
-TapSigner::NewResponse TapSigner::New(const Bytes& chain_code,
+Tapsigner::NewResponse Tapsigner::New(const Bytes& chain_code,
                                       const std::string& cvc, int slot) {
   const auto [_, resp] = SendAuth({{"cmd", "new"},
                                    {"slot", slot},
@@ -325,7 +325,7 @@ TapSigner::NewResponse TapSigner::New(const Bytes& chain_code,
   return resp;
 }
 
-Bytes TapSigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
+Bytes Tapsigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
                       const std::string& subpath) {
   const auto make_recoverable_sig = [](const Bytes& digest, const Bytes& sig,
                                        const Bytes& expected_pubkey) {
@@ -360,17 +360,17 @@ Bytes TapSigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
                             "Digest must be exactly 32 bytes");
   }
 
-  const std::vector<int64_t> subpath_int =
-      !subpath.empty() ? Str2Path(subpath) : std::vector<int64_t>();
+  const std::vector<uint32_t> subpath_int =
+      !subpath.empty() ? Str2Path(subpath) : std::vector<uint32_t>();
 
   if (subpath_int.size() > 2) {
     throw TapProtoException(TapProtoException::INVALID_PATH_LENGTH,
                             "Length of path is greater than 2");
   }
 
-  const auto none_hardened = [](const std::vector<int64_t>& path) {
+  const auto none_hardened = [](const std::vector<uint32_t>& path) {
     return !std::any_of(std::begin(path), std::end(path),
-                        [](int64_t i) { return i & HARDENED; });
+                        [](uint32_t i) { return i & HARDENED; });
   };
 
   if (!none_hardened(subpath_int)) {
@@ -409,7 +409,7 @@ Bytes TapSigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
                           "Failed to sign digest after 5 retries. Try again.");
 }
 
-Bytes TapSigner::SignMessage(const Bytes& msg, const std::string& cvc,
+Bytes Tapsigner::SignMessage(const Bytes& msg, const std::string& cvc,
                              const std::string& subpath) {
   auto ser_compact_size = [](size_t size) {
     if (size < 253) {
