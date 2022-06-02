@@ -41,7 +41,7 @@ class CKTapCard {
   nlohmann::json Send(const nlohmann::json& msg);
   std::pair<Bytes, nlohmann::json> SendAuth(const nlohmann::json& msg,
                                             const Bytes& cvc = {});
-  Bytes GetIdent() const noexcept;
+  std::string GetIdent() const noexcept;
 
   virtual StatusResponse Status();
   virtual std::string NFC();

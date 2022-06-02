@@ -8,7 +8,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_TESTING "Build unit tests" OFF)
-option(BUILD_TEST_WITH_EMULATOR "Build test with emulator" OFF)
 
 if (ANDROID)
     add_library(wally SHARED IMPORTED)
@@ -91,9 +90,6 @@ if (BUILD_TESTING)
                 "${PROJECT_SOURCE_DIR}/tests/third_party/doctest"
                 "${PROJECT_SOURCE_DIR}/include"
                 )
-        if (BUILD_TEST_WITH_EMULATOR)
-            target_compile_definitions(${testcase} PRIVATE BUILD_TEST_WITH_EMULATOR)
-        endif ()
 
         add_test(NAME ${testcase} COMMAND ${testcase})
     endforeach ()

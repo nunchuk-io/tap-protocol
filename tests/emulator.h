@@ -1,6 +1,5 @@
 #ifndef EMULATOR_H
 #define EMULATOR_H
-#ifdef BUILD_TEST_WITH_EMULATOR
 #include <boost/asio.hpp>
 #include <iostream>
 #include <string>
@@ -53,5 +52,4 @@ struct CardEmulator : public tap_protocol::Transport {
 inline boost::asio::io_service CardEmulator::io_service_;
 inline stream_protocol::socket CardEmulator::socket_ =
     boost::asio::local::stream_protocol::socket(CardEmulator::io_service_);
-#endif
 #endif

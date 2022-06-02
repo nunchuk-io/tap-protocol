@@ -29,16 +29,10 @@ TEST_CASE("set up new card") {
     tap_protocol::Bytes chain_code_hash =
         tap_protocol::SHA256d(random_chain_code);
 
-    json newResp;
+    auto newResp = tapSigner.New(chain_code_hash, "123456", 0);
 
-    CHECK_THROWS_AS({ newResp = tapSigner.New(chain_code_hash, "123456", 0); },
-                    tap_protocol::TapProtoException);
-
-    MESSAGE("new resp:", newResp.dump(2));
-    bool check =
-        newResp.empty() ||
-        !tap_protocol::CKTapCard::NewResponse(newResp).card_nonce.empty();
-    CHECK(check);
+    MESSAGE("new resp:", json(newResp).dump(2));
+    CHECK(!newResp.card_nonce.empty());
 
   } else {
     MESSAGE("card is already setup, and ready to use");
@@ -58,11 +52,7 @@ TEST_CASE("test card identity") {
 
   // Then ident must equal emulator card ident
   const std::string emulatorCardIdent = "XDXKQ-W6VW6-GEQI3-ATSC2";
-  auto identStr = std::string((const char*)ident.data(), ident.size());
-
-  CAPTURE(emulatorCardIdent);
-  CAPTURE(identStr);
-  CHECK(identStr == emulatorCardIdent);
+  CHECK(ident == emulatorCardIdent);
 }
 
 TEST_CASE("derive tapsigner") {
@@ -76,7 +66,7 @@ TEST_CASE("derive tapsigner") {
 
   // Then return a pubkey to this path
   CHECK(!resp.pubkey.empty());
-  MESSAGE(json(resp).dump(2));
+  MESSAGE("derive:", json(resp).dump(2));
 }
 
 TEST_CASE("test tapsigner derivation path") {
@@ -89,7 +79,7 @@ TEST_CASE("test tapsigner derivation path") {
   std::string d = tapSigner.GetDerivation();
   // Then return derivation path
   CHECK(!d.empty());
-  MESSAGE("derivation = ", d);
+  MESSAGE("derivation path:", d);
 }
 
 TEST_CASE("string to path and reverse") {
@@ -183,6 +173,7 @@ TEST_CASE("check certs") {
       std::make_unique<CardEmulator>();
   tap_protocol::Tapsigner tapSigner(std::move(tp));
 
+  // emulator doesn't need certificate check
   CHECK_THROWS_AS(
       {
         std::string label = tapSigner.CertificateCheck();
@@ -197,11 +188,8 @@ TEST_CASE("sign digest") {
   tap_protocol::Tapsigner tapSigner(std::move(tp));
 
   std::string msg = "nunchuk!!!";
-  // bd8c9c3b2285e518c6f31f0692e4395276ca141dde4fbe9dc69baf74f2a3143b
-  // tap_protocol::Bytes digest =
-  //     tap_protocol::SHA256d({std::begin(msg), std::end(msg)});
   tap_protocol::Bytes resp =
       tapSigner.SignMessage({std::begin(msg), std::end(msg)}, "123456");
   CHECK(!resp.empty());
-  MESSAGE("signed:", tap_protocol::Bytes2Str(resp));
+  MESSAGE("signed digest:", tap_protocol::Bytes2Str(resp));
 }

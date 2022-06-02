@@ -32,8 +32,6 @@ static int get_bip44_purpose(HWITapsigner::AddressType address_type) {
                              "Unknown address type");
 }
 
-static constexpr uint32_t HARDENED_FLAG = 1 << 31;
-
 static bool is_p2pkh(const CScript &script) {
   return script.size() == 25 && script[0] == 0x76 and script[1] == 0xa9 and
          script[2] == 0x14 and script[23] == 0x88 and script[24] == 0xac;
@@ -100,9 +98,7 @@ static CMutableTransaction &get_unsigned_tx(PartiallySignedTransaction &psbt) {
                              "Empty transaction");
 }
 
-static bool is_hardened(int64_t component) {
-  return component >= HARDENED_FLAG;
-}
+static bool is_hardened(int64_t component) { return component >= HARDENED; }
 
 static void check_bip32_path(const std::vector<uint32_t> &path) {
   bool found_non_hardened = false;
@@ -169,7 +165,7 @@ inline std::string EncodePsbt(const PartiallySignedTransaction &psbtx) {
 }
 
 ext_key HWITapsignerImpl::GetPubkeyAtPath(const std::string &bip32_path) {
-  cvc_ = pin_callback_();
+  GetCVC();
 
   auto int_path = Str2Path(bip32_path);
   check_bip32_path(int_path);
@@ -202,15 +198,16 @@ ext_key HWITapsignerImpl::GetPubkeyAtPath(const std::string &bip32_path) {
   }
 }
 
-void HWITapsignerImpl::SetPromptPinCallback(PromptPinCallback func) {
-  pin_callback_ = std::move(func);
+void HWITapsignerImpl::SetPromptCVCCallback(PromptCVCCallback func) {
+  cvc_callback_ = std::move(func);
 }
 
 std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
   auto tx = DecodePsbt(base64_psbt);
   auto &blank_tx = get_unsigned_tx(tx);
   auto master_fp = GetMasterFingerprint();
-  cvc_ = pin_callback_();
+
+  GetCVC();
 
   using SigHashTuple = std::tuple<Bytes, std::vector<uint32_t>, int, CPubKey>;
   std::vector<SigHashTuple> sighash_tuples;
@@ -355,7 +352,7 @@ Bytes HWITapsignerImpl::GetMasterFingerprint() {
 std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,
                                             int account) {
   int bip44_pupose = get_bip44_purpose(address_type);
-  int bip44_chain = 0;
+  int bip44_chain = chain;
   std::ostringstream path;
   path << "m/" << bip44_pupose << "h/" << bip44_chain << "h/" << account << "h";
   auto pubkey = GetPubkeyAtPath(path.str());
@@ -373,11 +370,21 @@ std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,
   return EncodeBase58({master_xpub.data(), master_xpub.size()});
 }
 
-HWITapsignerImpl::HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer)
-    : tap_signer_(std::move(tap_signer)) {}
+void HWITapsignerImpl::GetCVC() {
+  auto opt_cvc = cvc_callback_();
+  if (opt_cvc) {
+    cvc_ = *opt_cvc;
+  }
+}
+
+HWITapsignerImpl::HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer,
+                                   PromptCVCCallback cvc_callback)
+    : tap_signer_(std::move(tap_signer)),
+      cvc_callback_(std::move(cvc_callback)) {}
 
 std::unique_ptr<HWITapsigner> MakeHWITapsigner(
-    std::unique_ptr<Tapsigner> tap_signer) {
-  return std::make_unique<HWITapsignerImpl>(std::move(tap_signer));
+    std::unique_ptr<Tapsigner> tap_signer, PromptCVCCallback cvc_callback) {
+  return std::make_unique<HWITapsignerImpl>(std::move(tap_signer),
+                                            std::move(cvc_callback));
 }
 }  // namespace tap_protocol

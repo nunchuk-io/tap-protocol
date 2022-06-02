@@ -57,29 +57,6 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
   return XCVC{.session_key = session_key, .epubkey = my_pubkey, .xcvc = xcvc};
 }
 
-Bytes CardPubkeyToIdent(const Bytes &card_pubkey) {
-  if (card_pubkey.size() != 33) {
-    throw TapProtoException(TapProtoException::INVALID_PUBKEY_COMPRESS_LENGTH,
-                            "Expecting compressed pubkey");
-  }
-
-  Bytes pubkey_sha = SHA256(card_pubkey);
-  pubkey_sha.erase(std::begin(pubkey_sha), std::begin(pubkey_sha) + 8);
-
-  auto md = ToUpper(EncodeBase32(pubkey_sha));
-
-  static constexpr int IDENT_SIZE = 23;
-
-  Bytes ident(IDENT_SIZE);
-  for (int i = 0, j = 0; i < 20; ++i) {
-    if ((j + 1) % 6 == 0) {
-      ident[j++] = '-';
-    }
-    ident[j++] = md[i];
-  }
-  return ident;
-}
-
 std::string Path2Str(const std::vector<uint32_t> &path) {
   std::string result = path.empty() ? "" : "m/";
   for (auto it = std::begin(path); it != std::end(path); ++it) {
@@ -154,15 +131,22 @@ std::vector<uint32_t> Str2Path(std::string path) {
   return result;
 }
 
+// TODO: secure rand?
+using random_bytes_engine =
+    std::independent_bits_engine<std::default_random_engine, CHAR_BIT,
+                                 unsigned char>;
+static std::mt19937 mt{std::random_device{}()};
+static random_bytes_engine rbe(mt());
+
+Bytes RandomBytes(size_t size) {
+  Bytes result(size);
+  std::generate(std::begin(result), std::end(result), rbe);
+  return result;
+}
+
 Bytes PickNonce() {
-  using random_bytes_engine =
-      std::independent_bits_engine<std::default_random_engine, CHAR_BIT,
-                                   unsigned char>;
-  static random_bytes_engine rbe(std::random_device{}());
   static constexpr int USER_NONCE_SIZE = 16;
-  Bytes nonce(USER_NONCE_SIZE);
-  std::generate(std::begin(nonce), std::end(nonce), rbe);
-  return nonce;
+  return RandomBytes(USER_NONCE_SIZE);
 }
 
 }  // namespace tap_protocol

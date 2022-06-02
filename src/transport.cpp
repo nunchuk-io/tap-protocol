@@ -99,10 +99,9 @@ std::unique_ptr<Transport> MakeDefaultTransportIOS(
                           .p1 = req[2],
                           .p2 = req[3],
                           .data = {std::begin(req) + 4, std::end(req)}});
-        Bytes result(std::begin(resp.data), std::end(resp.data));
-        result.push_back(resp.sw1);
-        result.push_back(resp.sw2);
-        return result;
+        resp.data.push_back(resp.sw1);
+        resp.data.push_back(resp.sw2);
+        return resp.data;
       });
 }
 }  // namespace tap_protocol

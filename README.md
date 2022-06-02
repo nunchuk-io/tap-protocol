@@ -110,7 +110,7 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
 ```
 mkdir build
 cd build
-cmake -DBUILD_TESTING=ON -DBUILD_TEST_WITH_EMULATOR=ON ..
+cmake -DBUILD_TESTING=ON ..
 make all test
 ```
 

@@ -6,8 +6,6 @@
 namespace tap_protocol {
 std::pair<Bytes, Bytes> CT_pick_keypair();
 
-Bytes RandomBytes(size_t size);
-
 Bytes CT_ecdh(const Bytes& pubkey, const Bytes& privkey);
 
 Bytes CT_sig_to_pubkey(const Bytes& pubkey, const Bytes& sig);

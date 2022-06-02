@@ -27,6 +27,29 @@ static const std::map<Bytes, std::string> FACTORY_ROOT_KEYS = {
      "Root Factory Certificate (TESTING ONLY)"},
 };
 
+Bytes CardPubkeyToIdent(const Bytes& card_pubkey) {
+  if (card_pubkey.size() != 33) {
+    throw TapProtoException(TapProtoException::INVALID_PUBKEY_COMPRESS_LENGTH,
+                            "Expecting compressed pubkey");
+  }
+
+  Bytes pubkey_sha = SHA256(card_pubkey);
+  pubkey_sha.erase(std::begin(pubkey_sha), std::begin(pubkey_sha) + 8);
+
+  auto md = ToUpper(EncodeBase32(pubkey_sha));
+
+  static constexpr int IDENT_SIZE = 23;
+
+  Bytes ident(IDENT_SIZE);
+  for (int i = 0, j = 0; i < 20; ++i) {
+    if ((j + 1) % 6 == 0) {
+      ident[j++] = '-';
+    }
+    ident[j++] = md[i];
+  }
+  return ident;
+}
+
 CKTapCard::CKTapCard(std::unique_ptr<Transport> transport)
     : transport_(std::move(transport)) {
   FirstLook();
@@ -138,7 +161,9 @@ std::string CKTapCard::CertificateCheck() {
   return verify_certs(st, check, certs, nonce);
 }
 
-Bytes CKTapCard::GetIdent() const noexcept { return card_ident_; }
+std::string CKTapCard::GetIdent() const noexcept {
+  return {std::begin(card_ident_), std::end(card_ident_)};
+}
 
 void to_json(json& j, const CKTapCard::StatusResponse& t) {
   j = {

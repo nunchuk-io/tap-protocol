@@ -2,6 +2,7 @@
 #define HWI_TAPSIGNER_H
 
 #include <memory>
+#include <optional>
 #include <string>
 #include "tap_protocol/cktapcard.h"
 #include "tap_protocol/tap_protocol.h"
@@ -14,12 +15,14 @@ class HWITapsigerException : public TapProtoException {
  public:
   using TapProtoException::TapProtoException;
 
-  static const int PSBT_PARSE_ERROR = -1000;
-  static const int PSBT_INVALID = -1001;
-  static const int MALFORMED_BIP32_PATH = -1002;
+  static const int PSBT_PARSE_ERROR = -2001;
+  static const int PSBT_INVALID = -2002;
+  static const int MALFORMED_BIP32_PATH = -2003;
+
+  static const int UNKNOW_ERROR = -2999;
 };
 
-using PromptPinCallback = std::function<std::string()>;
+using PromptCVCCallback = std::function<std::optional<std::string>()>;
 
 class HWITapsigner {
  protected:
@@ -39,7 +42,7 @@ class HWITapsigner {
   virtual Bytes GetMasterFingerprint() = 0;
   virtual std::string GetMasterXpub(AddressType address_type = WIT,
                                     int account = 0) = 0;
-  virtual void SetPromptPinCallback(PromptPinCallback func) = 0;
+  virtual void SetPromptCVCCallback(PromptCVCCallback func) = 0;
 
   virtual ~HWITapsigner() = default;
 };
@@ -47,11 +50,12 @@ class HWITapsigner {
 class HWITapsignerImpl : public HWITapsigner {
  public:
   HWITapsignerImpl() = default;
-  HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer);
+  HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer,
+                   PromptCVCCallback cvc_callback);
 
   std::string SignTx(const std::string &psbt) override;
   Bytes GetMasterFingerprint() override;
-  void SetPromptPinCallback(PromptPinCallback func) override;
+  void SetPromptCVCCallback(PromptCVCCallback func) override;
   std::string GetMasterXpub(AddressType address_type = WIT,
                             int account = 0) override;
 
@@ -59,16 +63,18 @@ class HWITapsignerImpl : public HWITapsigner {
 
  private:
   ext_key GetPubkeyAtPath(const std::string &bip32_path);
+  void GetCVC();
 
  private:
+  // TODO: set chain
   int chain = 0;  // 0 MAIN, 1 TEST
-  PromptPinCallback pin_callback_;
+  PromptCVCCallback cvc_callback_;
   std::unique_ptr<Tapsigner> tap_signer_;
   std::string cvc_;
 };
 
 std::unique_ptr<HWITapsigner> MakeHWITapsigner(
-    std::unique_ptr<Tapsigner> tap_signer);
+    std::unique_ptr<Tapsigner> tap_signer, PromptCVCCallback cvc_callback);
 
 }  // namespace tap_protocol
 
