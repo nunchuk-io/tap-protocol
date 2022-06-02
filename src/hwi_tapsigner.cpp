@@ -1,4 +1,4 @@
-#include <iostream>
+#include <algorithm>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -10,11 +10,27 @@
 #include <serialize.h>
 #include <base58.h>
 #include <wally_bip32.h>
+#include "span.h"
 #include "tap_protocol/hash_utils.h"
 #include "tap_protocol/hwi_tapsigner.h"
 #include "tap_protocol/utils.h"
 
 namespace tap_protocol {
+
+static int get_bip44_purpose(HWITapsigner::AddressType address_type) {
+  switch (address_type) {
+    case HWITapsigner::AddressType::LEGACY:
+      return 44;
+    case HWITapsigner::AddressType::SH_WIT:
+      return 49;
+    case HWITapsigner::AddressType::WIT:
+      return 84;
+    case HWITapsigner::AddressType::TAP:
+      return 86;
+  }
+  throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
+                             "Unknown address type");
+}
 
 static constexpr uint32_t HARDENED_FLAG = 1 << 31;
 
@@ -28,18 +44,12 @@ static bool is_p2pk(const CScript &script) {
          (script[0] == 0x21 or script[0] == 0x41) && script.back() == 0xac;
 }
 
-static std::pair<bool, std::vector<unsigned char>> is_p2wpkh(
+static std::tuple<bool, int, std::vector<unsigned char>> is_p2wpkh(
     const CScript &script) {
-  int version_;
-  std::vector<unsigned char> program_;
-  bool is_wit = script.IsWitnessProgram(version_, program_);
-  if (!is_wit) {
-    return {false, {}};
-  }
-  if (version_ != 0) {
-    return {false, {}};
-  }
-  return {program_.size() == 20, program_};
+  int version;
+  std::vector<unsigned char> program;
+  bool is_wit = script.IsWitnessProgram(version, program);
+  return {is_wit, version, program};
 }
 
 static Bytes ser_sig_der(Bytes r, Bytes s) {
@@ -55,7 +65,8 @@ static Bytes ser_sig_der(Bytes r, Bytes s) {
   };
 
   CDataStream sig(SER_NETWORK, PROTOCOL_VERSION);
-  sig << 0x30;
+  using uchar = unsigned char;
+  sig << uchar(0x30);
 
   r = remove_leading_zero(r);
   s = remove_leading_zero(s);
@@ -70,12 +81,12 @@ static Bytes ser_sig_der(Bytes r, Bytes s) {
     s.insert(std::begin(s), 0x00);
   }
 
-  auto total_len = r.size() + s.size() + 4;
+  auto total_len = uchar(r.size() + s.size() + 4);
   sig << total_len;
 
-  sig << 0x02 << r.size() << r;
-  sig << 0x02 << s.size() << s;
-  sig << 0x01;
+  sig << uchar(0x02) << uchar(r.size()) << MakeUCharSpan(r);
+  sig << uchar(0x02) << uchar(s.size()) << MakeUCharSpan(s);
+  sig << uchar(0x01);
   return {std::begin(sig), std::end(sig)};
 }
 
@@ -89,9 +100,11 @@ static CMutableTransaction &get_unsigned_tx(PartiallySignedTransaction &psbt) {
                              "Empty transaction");
 }
 
-bool is_hardened(int64_t component) { return component >= HARDENED_FLAG; }
+static bool is_hardened(int64_t component) {
+  return component >= HARDENED_FLAG;
+}
 
-void check_bip32_path(const std::vector<uint32_t> &path) {
+static void check_bip32_path(const std::vector<uint32_t> &path) {
   bool found_non_hardened = false;
   for (auto component : path) {
     bool curr_hardened = is_hardened(component);
@@ -104,7 +117,7 @@ void check_bip32_path(const std::vector<uint32_t> &path) {
   }
 }
 
-std::pair<std::vector<uint32_t>, std::vector<uint32_t>> split_bip32_path(
+static std::pair<std::vector<uint32_t>, std::vector<uint32_t>> split_bip32_path(
     const std::vector<uint32_t> &path) {
   std::vector<uint32_t> hardened, non_hardened;
   for (auto component : path) {
@@ -117,7 +130,7 @@ std::pair<std::vector<uint32_t>, std::vector<uint32_t>> split_bip32_path(
   return {hardened, non_hardened};
 }
 
-ext_key xpub2pubkey(const std::string &xpub) {
+static ext_key xpub2extkey(const std::string &xpub) {
   //    std::vector<unsigned char> data;
   //    if (!DecodeBase58({std::begin(xpub), std::end(xpub)}, data, 100)) {
   //      throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
@@ -133,7 +146,8 @@ ext_key xpub2pubkey(const std::string &xpub) {
   ext_key extKey;
   if (int code = bip32_key_from_base58_n(xpub.data(), xpub.size(), &extKey);
       code != WALLY_OK) {
-    assert(0);
+    throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
+                               "bip32_key_from_base58 error");
   }
   return extKey;
 }
@@ -154,39 +168,37 @@ inline std::string EncodePsbt(const PartiallySignedTransaction &psbtx) {
   return EncodeBase64(MakeUCharSpan(ssTx));
 }
 
-Bytes HWITapsignerImpl::GetPubkeyAtPath(const std::string &bip32_path) {
+ext_key HWITapsignerImpl::GetPubkeyAtPath(const std::string &bip32_path) {
   cvc_ = pin_callback_();
+
   auto int_path = Str2Path(bip32_path);
   check_bip32_path(int_path);
   auto [hardened, non_hardened] = split_bip32_path(int_path);
 
-  // TODO: this seem wrong, need to derive ext key
   if (!non_hardened.empty()) {
     tap_signer_->Derive(bip32_path, cvc_);
     auto xp = tap_signer_->Xpub(cvc_, false);
-    auto extkey = xpub2pubkey(xp);
-    auto &pubkey = extkey.pub_key;
-    return Bytes{pubkey, pubkey + sizeof(pubkey)};
+    auto extkey = xpub2extkey(xp);
+    return extkey;
   } else {
     auto str_path = Path2Str(hardened);
     tap_signer_->Derive(str_path, cvc_);
     auto xp = tap_signer_->Xpub(cvc_, false);
-    auto extKey = xpub2pubkey(xp);
-    auto &pubkey = extKey.pub_key;
-    return Bytes{pubkey, pubkey + sizeof(pubkey)};
+    auto extkey = xpub2extkey(xp);
 
-    //    ext_key derivedKey;
-    //
-    //    if (int code = bip32_key_from_parent_path(
-    //            &extKey, int_path.data(), int_path.size(),
-    //            BIP32_FLAG_KEY_PUBLIC, &derivedKey);
-    //        code != WALLY_OK) {
-    //      throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
-    //                                 "Derive key error " +
-    //                                 std::to_string(code));
-    //    }
-    //    return Bytes{derivedKey.pub_key,
-    //                 derivedKey.pub_key + sizeof(derivedKey.pub_key)};
+    if (!non_hardened.empty()) {
+      ext_key derived_key;
+      if (int code = bip32_key_from_parent_path(
+              &extkey, non_hardened.data(), non_hardened.size(),
+              BIP32_FLAG_KEY_PUBLIC, &derived_key);
+          code != WALLY_OK) {
+        throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
+                                   "Derive key error " + std::to_string(code));
+      }
+      return derived_key;
+    }
+
+    return extkey;
   }
 }
 
@@ -239,6 +251,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
       }
       scriptcode = psbt_in.witness_script;
     }
+
     Bytes sighash;
 
     if (!is_wit) {
@@ -276,8 +289,8 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
 
       auto hashOutputs =
           SHA256d({std::begin(outputs_preimage), std::end(outputs_preimage)});
-      if (auto [is_p2wpkh_script, prog] = is_p2wpkh(scriptcode);
-          is_p2wpkh_script) {
+
+      if (auto [is_witness, ver, prog] = is_p2wpkh(scriptcode); is_witness) {
         scriptcode.clear();
         scriptcode.push_back(0x76);
         scriptcode.push_back(0xa9);
@@ -290,23 +303,24 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
 
       CDataStream preimage(SER_NETWORK, PROTOCOL_VERSION);
       preimage << blank_tx.nVersion;
-      preimage << hashPrevouts;
-      preimage << hashSequence;
+
+      preimage << MakeUCharSpan(hashPrevouts);
+      preimage << MakeUCharSpan(hashSequence);
       preimage << txin.prevout;
-      WriteCompactSize(preimage, scriptcode.size());
       preimage << scriptcode;
       preimage << psbt_in.witness_utxo.nValue;
       preimage << txin.nSequence;
-      preimage << hashOutputs;
+      preimage << MakeUCharSpan(hashOutputs);
       preimage << blank_tx.nLockTime;
-      preimage << 0x01 << 0x00 << 0x00 << 0x00;
+      preimage << MakeUCharSpan(Bytes{0x01, 0x00, 0x00, 0x00});
 
       sighash = SHA256d({std::begin(preimage), std::end(preimage)});
     }
 
     for (auto &&[pubkey, keypath] : psbt_in.hd_keypaths) {
-      if (master_fp == Bytes(std::begin(keypath.fingerprint),
-                             std::end(keypath.fingerprint))) {
+      if (std::equal(std::begin(master_fp), std::end(master_fp),
+                     std::begin(keypath.fingerprint),
+                     std::end(keypath.fingerprint))) {
         sighash_tuples.emplace_back(sighash, keypath.path, i, pubkey);
       }
     }
@@ -320,7 +334,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
     check_bip32_path(int_path);
     auto [hardened, non_hardened] = split_bip32_path(int_path);
     tap_signer_->Derive(Path2Str(hardened), cvc_);
-    auto rec_sig = tap_signer_->Sign(sighash, cvc_);
+    auto rec_sig = tap_signer_->Sign(sighash, cvc_, 0, Path2Str(non_hardened));
     assert(rec_sig.size() == 65);
     Bytes r(std::begin(rec_sig) + 1, std::begin(rec_sig) + 33);
     Bytes s(std::begin(rec_sig) + 33, std::begin(rec_sig) + 65);
@@ -333,9 +347,30 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
 
 Bytes HWITapsignerImpl::GetMasterFingerprint() {
   auto extended_key_m = GetPubkeyAtPath("m");
-  auto fingerprint =
-      Hash160({std::begin(extended_key_m), std::end(extended_key_m)});
+  auto fingerprint = Hash160(
+      {std::begin(extended_key_m.pub_key), std::end(extended_key_m.pub_key)});
   return {std::begin(fingerprint), std::begin(fingerprint) + 4};
+}
+
+std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,
+                                            int account) {
+  int bip44_pupose = get_bip44_purpose(address_type);
+  int bip44_chain = 0;
+  std::ostringstream path;
+  path << "m/" << bip44_pupose << "h/" << bip44_chain << "h/" << account << "h";
+  auto pubkey = GetPubkeyAtPath(path.str());
+
+  Bytes master_xpub(BIP32_SERIALIZED_LEN);
+  if (int code = bip32_key_serialize(&pubkey, BIP32_FLAG_KEY_PUBLIC,
+                                     master_xpub.data(), master_xpub.size());
+      code != WALLY_OK) {
+    throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
+                               "BIP32 serialize error");
+  }
+  Bytes double_hash_xpub = SHA256d(master_xpub);
+  master_xpub.insert(std::end(master_xpub), std::begin(double_hash_xpub),
+                     std::begin(double_hash_xpub) + 4);
+  return EncodeBase58({master_xpub.data(), master_xpub.size()});
 }
 
 HWITapsignerImpl::HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer)
