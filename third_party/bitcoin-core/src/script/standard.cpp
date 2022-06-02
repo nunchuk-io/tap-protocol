@@ -348,10 +348,10 @@ public:
 };
 } // namespace
 
-CScript GetScriptForDestination(const CTxDestination& dest)
-{
-    return std::visit(CScriptVisitor(), dest);
-}
+//CScript GetScriptForDestination(const CTxDestination& dest)
+//{
+//    return std::visit(CScriptVisitor(), dest);
+//}
 
 CScript GetScriptForRawPubKey(const CPubKey& pubKey)
 {

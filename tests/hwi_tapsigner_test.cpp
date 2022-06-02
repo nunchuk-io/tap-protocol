@@ -52,4 +52,11 @@ TEST_CASE("sign psbt") {
   auto signed_tx = hwi->SignTx(psbt);
 
   CHECK(signed_tx == expected_signed_tx);
+
+  SUBCASE("sign psbt 2") {
+    std::string psbt2 =
+        R"(cHNidP8BAHECAAAAAXrmtsvP0awn2qYs/ZkvYFpuiWVqdvLC5lsQDus+Hg1nAQAAAAD9////AhAnAAAAAAAAFgAUPyYxfgarAm+2nXG+cmkATjuEpVSJYJUAAAAAABYAFMs/gBI6mDaaW9+mcSpkzNGdGKneAAAAAAABAHECAAAAAeQO+WHGMBcygfnSdJp0RMQecTH8b0uOiKe7nZFDnPHBAQAAAAD9////AqCGAQAAAAAAFgAU09lgrqrjqstuu1rWWnCWj0cKR80miJUAAAAAABYAFElZt8QO2/t4f+tE8+RZP7od4ELwAAAAAAEBHyaIlQAAAAAAFgAUSVm3xA7b+3h/60Tz5Fk/uh3gQvAiBgJUpRTzUFRX5tfAvtpCzgSWvPJm1GpYJFpzea6OacioQBiTgGJuVAAAgAAAAIAAAACAAQAAAAEAAAAAACICA0Q5584TFoYf1zZmwx6ryEzfSI0zbvqLIp1s7sMmJ3LuGJOAYm5UAACAAAAAgAAAAIABAAAAAgAAAAA=)";
+    auto sign_tx_2 = hwi->SignTx(psbt2);
+    MESSAGE("sign psbt2:", sign_tx_2);
+  }
 }
