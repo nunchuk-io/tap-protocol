@@ -86,14 +86,6 @@ json TransportImpl::Send(const json &msg) {
 }
 
 std::unique_ptr<Transport> MakeDefaultTransport(SendReceiveFunction func) {
-  try {
-    std::string base64_psbt;
-    auto hwi = MakeHWITapSigner();
-    auto signed_tx = hwi->SignTx(base64_psbt);
-  } catch (std::exception &e) {
-    std::cout << "hehe\n";
-  }
-
   return std::make_unique<TransportImpl>(func);
 }
 
