@@ -98,7 +98,7 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_addCard(JNIEnv *env, jobj
     });
     tap_protocol::Tapsigner tapsigner(std::move(tp));
     // Call status
-    auto resp = tapsigner.Status();
+    json resp = tapsigner.Status();
 
     __android_log_print(ANDROID_LOG_VERBOSE, "CoolApp", "Status response %s", resp.dump(4).c_str());
 }

@@ -1,21 +1,26 @@
-#include "tap_protocol/utils.h"
-#include "tap_protocol/hash_utils.h"
-//#include "bitcoin/strencodings.h"
 #include <util/strencodings.h>
 #include <algorithm>
 #include <cctype>
 #include <climits>
 #include <random>
 #include <string>
+#include <vector>
+#include "tap_protocol/utils.h"
+#include "tap_protocol/hash_utils.h"
 
 namespace tap_protocol {
 
 std::string Bytes2Str(const Bytes &msg) {
-  std::ostringstream result;
-  for (auto &&c : msg) {
-    result << std::hex << std::setw(2) << std::setfill('0') << int(c);
+  std::string rv(msg.size() * 2, '\0');
+  static constexpr char hexmap[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                                      '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+  auto it = rv.begin();
+  for (auto v : msg) {
+    *it++ = hexmap[v >> 4];
+    *it++ = hexmap[v & 15];
   }
-  return result.str();
+  assert(it == rv.end());
+  return rv;
 }
 
 std::string ToUpper(std::string str) {
@@ -89,14 +94,9 @@ std::vector<uint32_t> Str2Path(std::string path) {
 
   std::vector<uint32_t> result;
 
-  // Remove 'm' if exists
-  if (!path.empty() && path.front() == 'm') {
-    path.erase(std::begin(path));
-  }
-
   auto splits = split(path, '/');
   for (auto &str : splits) {
-    if (str.empty()) {
+    if (str.empty() || str == "m") {
       continue;
     }
     uint32_t num{}, here{};

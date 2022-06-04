@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -10,12 +11,14 @@
 #include <serialize.h>
 #include <base58.h>
 #include <wally_bip32.h>
+#include "pubkey.h"
 #include "span.h"
 #include "tap_protocol/hash_utils.h"
 #include "tap_protocol/hwi_tapsigner.h"
 #include "tap_protocol/utils.h"
 
 namespace tap_protocol {
+using uchar = unsigned char;
 
 static int get_bip44_purpose(HWITapsigner::AddressType address_type) {
   switch (address_type) {
@@ -63,7 +66,6 @@ static Bytes ser_sig_der(Bytes r, Bytes s) {
   };
 
   CDataStream sig(SER_NETWORK, PROTOCOL_VERSION);
-  using uchar = unsigned char;
   sig << uchar(0x30);
 
   r = remove_leading_zero(r);
@@ -164,15 +166,15 @@ inline std::string EncodePsbt(const PartiallySignedTransaction &psbtx) {
   return EncodeBase64(MakeUCharSpan(ssTx));
 }
 
-ext_key HWITapsignerImpl::GetPubkeyAtPath(const std::string &bip32_path) {
+ext_key HWITapsignerImpl::GetPubkeyAtPath(const std::string &derivation_path) {
   GetCVC();
 
-  auto int_path = Str2Path(bip32_path);
+  auto int_path = Str2Path(derivation_path);
   check_bip32_path(int_path);
   auto [hardened, non_hardened] = split_bip32_path(int_path);
 
-  if (!non_hardened.empty()) {
-    tap_signer_->Derive(bip32_path, cvc_);
+  if (non_hardened.empty()) {
+    tap_signer_->Derive(derivation_path, cvc_);
     auto xp = tap_signer_->Xpub(cvc_, false);
     auto extkey = xpub2extkey(xp);
     return extkey;
@@ -182,19 +184,15 @@ ext_key HWITapsignerImpl::GetPubkeyAtPath(const std::string &bip32_path) {
     auto xp = tap_signer_->Xpub(cvc_, false);
     auto extkey = xpub2extkey(xp);
 
-    if (!non_hardened.empty()) {
-      ext_key derived_key;
-      if (int code = bip32_key_from_parent_path(
-              &extkey, non_hardened.data(), non_hardened.size(),
-              BIP32_FLAG_KEY_PUBLIC, &derived_key);
-          code != WALLY_OK) {
-        throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
-                                   "Derive key error " + std::to_string(code));
-      }
-      return derived_key;
+    ext_key derived_key;
+    if (int code = bip32_key_from_parent_path(
+            &extkey, non_hardened.data(), non_hardened.size(),
+            BIP32_FLAG_KEY_PUBLIC, &derived_key);
+        code != WALLY_OK) {
+      throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
+                                 "Derive key error " + std::to_string(code));
     }
-
-    return extkey;
+    return derived_key;
   }
 }
 
@@ -258,8 +256,8 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
         continue;
       }
       CDataStream ss_tx(SER_NETWORK, PROTOCOL_VERSION);
-      blank_tx.Serialize(ss_tx);
-      ss_tx << 0x01 << 0x00 << 0x00 << 0x00;
+      ss_tx << blank_tx;
+      ss_tx << MakeUCharSpan(Bytes{0x01, 0x00, 0x00, 0x00});
       std::string ser_tx_str = ss_tx.str();
       sighash = SHA256d({std::begin(ser_tx_str), std::end(ser_tx_str)});
       txin.scriptSig.clear();
@@ -342,6 +340,23 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
   return EncodePsbt(tx);
 }
 
+std::string HWITapsignerImpl::GetXpubAtPath(
+    const std::string &derivation_path) {
+  auto pubkey = GetPubkeyAtPath(derivation_path);
+  Bytes xpub(BIP32_SERIALIZED_LEN);
+  if (int code = bip32_key_serialize(&pubkey, BIP32_FLAG_KEY_PUBLIC,
+                                     xpub.data(), xpub.size());
+      code != WALLY_OK) {
+    throw HWITapsigerException(
+        HWITapsigerException::UNKNOW_ERROR,
+        "BIP32 serialize error: " + std::to_string(code));
+  }
+  Bytes double_hash_xpub = SHA256d(xpub);
+  xpub.insert(std::end(xpub), std::begin(double_hash_xpub),
+              std::begin(double_hash_xpub) + 4);
+  return EncodeBase58({xpub.data(), xpub.size()});
+}
+
 Bytes HWITapsignerImpl::GetMasterFingerprint() {
   auto extended_key_m = GetPubkeyAtPath("m");
   auto fingerprint = Hash160(
@@ -352,7 +367,7 @@ Bytes HWITapsignerImpl::GetMasterFingerprint() {
 std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,
                                             int account) {
   int bip44_pupose = get_bip44_purpose(address_type);
-  int bip44_chain = chain;
+  int bip44_chain = chain_;
   std::ostringstream path;
   path << "m/" << bip44_pupose << "h/" << bip44_chain << "h/" << account << "h";
   auto pubkey = GetPubkeyAtPath(path.str());
@@ -370,8 +385,47 @@ std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,
   return EncodeBase58({master_xpub.data(), master_xpub.size()});
 }
 
-void HWITapsignerImpl::GetCVC() {
-  auto opt_cvc = cvc_callback_();
+std::string HWITapsignerImpl::SignMessage(const std::string &message,
+                                          const std::string &derivation_path) {
+  GetCVC();
+  auto int_path = Str2Path(derivation_path);
+  check_bip32_path(int_path);
+
+  auto [hardened, non_hardened] = split_bip32_path(int_path);
+
+  CDataStream xmsg(SER_NETWORK, PROTOCOL_VERSION);
+
+  constexpr std::string_view MAGIC_STRING =
+      "\x18"
+      "Bitcoin Signed Message:\n";
+
+  xmsg << MakeUCharSpan(MAGIC_STRING) << message;
+  const Bytes md = SHA256d({std::begin(xmsg), std::end(xmsg)});
+
+  Bytes rec_sig;
+  if (non_hardened.empty()) {
+    tap_signer_->Derive(derivation_path, cvc_);
+    rec_sig = tap_signer_->Sign(md, cvc_, 0);
+  } else {
+    if (non_hardened.size() > 2) {
+      throw HWITapsigerException(
+          HWITapsigerException::INVALID_PATH_LENGTH,
+          "Only 2 non-hardened derivation components allowed");
+    }
+    tap_signer_->Derive(Path2Str(hardened), cvc_);
+    rec_sig = tap_signer_->Sign(md, cvc_, 0, Path2Str(non_hardened));
+  }
+
+  auto sig = EncodeBase64(rec_sig);
+  sig.erase(std::remove(std::begin(sig), std::end(sig), '\n'), std::end(sig));
+  return sig;
+}
+void HWITapsignerImpl::SetChain(Chain chain) { chain_ = chain; }
+bool HWITapsignerImpl::SetupDevice() { return false; }
+bool HWITapsignerImpl::RestoreDevice() { return false; }
+
+void HWITapsignerImpl::GetCVC(const std::string &message) {
+  auto opt_cvc = cvc_callback_(message);
   if (opt_cvc) {
     cvc_ = *opt_cvc;
   }

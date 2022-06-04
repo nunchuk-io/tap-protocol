@@ -147,7 +147,7 @@ std::string CKTapCard::CertificateCheck() {
       return it->second;
     }
     throw TapProtoException(
-        TapProtoException::UNKNOW_ERROR,
+        TapProtoException::INVALID_CARD,
         "Root cert is not from Coinkite. Card is counterfeit.");
   };
 
@@ -430,7 +430,7 @@ Bytes Tapsigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
       throw;
     }
   }
-  throw TapProtoException(TapProtoException::UNKNOW_ERROR,
+  throw TapProtoException(TapProtoException::EXCEEDED_RETRY,
                           "Failed to sign digest after 5 retries. Try again.");
 }
 

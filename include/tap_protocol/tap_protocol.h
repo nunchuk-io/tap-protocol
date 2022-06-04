@@ -43,6 +43,8 @@ class TapProtoException : public std::exception {
   static const int INVALID_DIGEST_LENGTH = -1015;
   static const int INVALID_PATH_LENGTH = -1016;
   static const int SERIALIZE_ERROR = -1017;
+  static const int EXCEEDED_RETRY = -1018;
+  static const int INVALID_CARD = -1019;
 
   static const int UNKNOW_ERROR = -1999;
 

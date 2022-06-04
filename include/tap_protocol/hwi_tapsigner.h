@@ -22,7 +22,8 @@ class HWITapsigerException : public TapProtoException {
   static const int UNKNOW_ERROR = -2999;
 };
 
-using PromptCVCCallback = std::function<std::optional<std::string>()>;
+using PromptCVCCallback =
+    std::function<std::optional<std::string>(const std::string &message)>;
 
 class HWITapsigner {
  protected:
@@ -38,12 +39,22 @@ class HWITapsigner {
     TAP = 4,     // Segwit v1 Taproot address type. P2TR always.
   };
 
+  enum Chain : int {
+    MAIN = 0,
+    TEST = 1,
+  };
+
+  virtual void SetChain(Chain chain) = 0;
   virtual std::string SignTx(const std::string &base64_psbt) = 0;
+  virtual std::string SignMessage(const std::string &message,
+                                  const std::string &derivation_path) = 0;
   virtual Bytes GetMasterFingerprint() = 0;
   virtual std::string GetMasterXpub(AddressType address_type = WIT,
                                     int account = 0) = 0;
+  virtual std::string GetXpubAtPath(const std::string &derivation_path) = 0;
+  virtual bool SetupDevice() = 0;
+  virtual bool RestoreDevice() = 0;
   virtual void SetPromptCVCCallback(PromptCVCCallback func) = 0;
-
   virtual ~HWITapsigner() = default;
 };
 
@@ -52,22 +63,25 @@ class HWITapsignerImpl : public HWITapsigner {
   HWITapsignerImpl() = default;
   HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer,
                    PromptCVCCallback cvc_callback);
-
-  std::string SignTx(const std::string &psbt) override;
+  void SetChain(Chain chain) override;
+  std::string SignTx(const std::string &base64_psbt) override;
+  std::string SignMessage(const std::string &message,
+                          const std::string &derivation_path) override;
   Bytes GetMasterFingerprint() override;
-  void SetPromptCVCCallback(PromptCVCCallback func) override;
   std::string GetMasterXpub(AddressType address_type = WIT,
                             int account = 0) override;
-
+  std::string GetXpubAtPath(const std::string &path) override;
+  bool SetupDevice() override;
+  bool RestoreDevice() override;
+  void SetPromptCVCCallback(PromptCVCCallback func) override;
   ~HWITapsignerImpl() = default;
 
  private:
-  ext_key GetPubkeyAtPath(const std::string &bip32_path);
-  void GetCVC();
+  ext_key GetPubkeyAtPath(const std::string &derivation_path);
+  void GetCVC(const std::string &message = "Please provide CVC:");
 
  private:
-  // TODO: set chain
-  int chain = 0;  // 0 MAIN, 1 TEST
+  Chain chain_ = MAIN;
   PromptCVCCallback cvc_callback_;
   std::unique_ptr<Tapsigner> tap_signer_;
   std::string cvc_;
