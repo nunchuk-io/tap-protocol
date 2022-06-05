@@ -53,6 +53,7 @@ class HWITapsigner {
                                     int account = 0) = 0;
   virtual std::string GetXpubAtPath(const std::string &derivation_path) = 0;
   virtual bool SetupDevice() = 0;
+  virtual Bytes BackupDevice() = 0;
   virtual bool RestoreDevice() = 0;
   virtual void SetPromptCVCCallback(PromptCVCCallback func) = 0;
   virtual ~HWITapsigner() = default;
@@ -72,6 +73,7 @@ class HWITapsignerImpl : public HWITapsigner {
                             int account = 0) override;
   std::string GetXpubAtPath(const std::string &path) override;
   bool SetupDevice() override;
+  Bytes BackupDevice() override;
   bool RestoreDevice() override;
   void SetPromptCVCCallback(PromptCVCCallback func) override;
   ~HWITapsignerImpl() = default;

@@ -423,8 +423,27 @@ std::string HWITapsignerImpl::SignMessage(const std::string &message,
   sig.erase(std::remove(std::begin(sig), std::end(sig), '\n'), std::end(sig));
   return sig;
 }
+
 void HWITapsignerImpl::SetChain(Chain chain) { chain_ = chain; }
-bool HWITapsignerImpl::SetupDevice() { return false; }
+
+bool HWITapsignerImpl::SetupDevice() {
+  GetCVC();
+  auto chain_code = SHA256d(RandomBytes(128));
+  try {
+    tap_signer_->New(chain_code, cvc_);
+    return true;
+  } catch (TapProtoException &te) {
+    return false;
+  }
+}
+
+Bytes HWITapsignerImpl::BackupDevice() {
+  GetCVC();
+  auto resp = tap_signer_->Backup(cvc_);
+  return resp.data;
+}
+
+// TODO: implement
 bool HWITapsignerImpl::RestoreDevice() { return false; }
 
 void HWITapsignerImpl::GetCVC(const std::string &message) {
