@@ -11,8 +11,8 @@
 #include <serialize.h>
 #include <base58.h>
 #include <wally_bip32.h>
-#include "pubkey.h"
-#include "span.h"
+#include <pubkey.h>
+#include <span.h>
 #include "tap_protocol/hash_utils.h"
 #include "tap_protocol/hwi_tapsigner.h"
 #include "tap_protocol/utils.h"
@@ -129,18 +129,6 @@ static std::pair<std::vector<uint32_t>, std::vector<uint32_t>> split_bip32_path(
 }
 
 static ext_key xpub2extkey(const std::string &xpub) {
-  //    std::vector<unsigned char> data;
-  //    if (!DecodeBase58({std::begin(xpub), std::end(xpub)}, data, 100)) {
-  //      throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
-  //                                 "Decode base58 fail");
-  //    }
-  //    data.resize(data.size() - 4);
-  //    auto hdata = Bytes2Str(data);
-  //  if (int code =
-  //        bip32_key_unserialize(data.data(), BIP32_SERIALIZED_LEN, &extKey);
-  //      code != WALLY_OK) {
-  //    assert(0);
-  //  }
   ext_key extKey;
   if (int code = bip32_key_from_base58_n(xpub.data(), xpub.size(), &extKey);
       code != WALLY_OK) {
@@ -344,17 +332,32 @@ std::string HWITapsignerImpl::GetXpubAtPath(
     const std::string &derivation_path) {
   auto pubkey = GetPubkeyAtPath(derivation_path);
   Bytes xpub(BIP32_SERIALIZED_LEN);
-  if (int code = bip32_key_serialize(&pubkey, BIP32_FLAG_KEY_PUBLIC,
-                                     xpub.data(), xpub.size());
-      code != WALLY_OK) {
-    throw HWITapsigerException(
-        HWITapsigerException::UNKNOW_ERROR,
-        "BIP32 serialize error: " + std::to_string(code));
-  }
-  Bytes double_hash_xpub = SHA256d(xpub);
-  xpub.insert(std::end(xpub), std::begin(double_hash_xpub),
-              std::begin(double_hash_xpub) + 4);
-  return EncodeBase58({xpub.data(), xpub.size()});
+  CDataStream packed(SER_NETWORK, PROTOCOL_VERSION);
+
+  packed << Using<BigEndianFormatter<4>>(pubkey.version) << pubkey.depth
+         << pubkey.parent160[0] << pubkey.parent160[1] << pubkey.parent160[2]
+         << pubkey.parent160[3]
+         << Using<BigEndianFormatter<4>>(pubkey.child_num) << pubkey.chain_code
+         << pubkey.pub_key;
+
+  auto checksum = SHA256d({std::begin(packed), std::end(packed)});
+  checksum.resize(4);
+
+  packed << MakeUCharSpan(checksum);
+  return EncodeBase58(packed);
+
+  // TODO: check why is this throw error with path="m/"
+  // if (int code = bip32_key_serialize(&pubkey, BIP32_FLAG_KEY_PUBLIC,
+  //                                    xpub.data(), xpub.size());
+  //     code != WALLY_OK) {
+  //   throw HWITapsigerException(
+  //       HWITapsigerException::UNKNOW_ERROR,
+  //       "BIP32 serialize error: " + std::to_string(code));
+  // }
+  // Bytes double_hash_xpub = SHA256d(xpub);
+  // xpub.insert(std::end(xpub), std::begin(double_hash_xpub),
+  //             std::begin(double_hash_xpub) + 4);
+  // return EncodeBase58({xpub.data(), xpub.size()});
 }
 
 Bytes HWITapsignerImpl::GetMasterFingerprint() {

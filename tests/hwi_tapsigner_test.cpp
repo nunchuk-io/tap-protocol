@@ -82,6 +82,14 @@ TEST_CASE("get xpub at path") {
 
   auto hwi = tap_protocol::MakeHWITapsigner(std::move(tapsigner), cvc_callback);
 
+  SUBCASE("m/") {
+    const std::string m =
+        R"(xpub67tVq9SuNQCfjr4myMqSnwKJKA9bYuRGxrNyXJGCRXU6rt1CYSPZzDHBCALLhWSZzVAw7MLgELaX6sb16fwtVXswgK7o3F27w9CvfxNzTwi)";
+    std::string res = hwi->GetXpubAtPath("m/");
+    MESSAGE("m/", res);
+    CHECK(m == res);
+  }
+
   SUBCASE("m/84h/0/0") {
     const std::string m =
         R"(xpub6C2BDeJ4ZD1HAcj9qpKdk7ijvUVVmAZmFUKck4MMtN9m7aRG5ieYA1EEqYukDzTyQrZWh7eqxVe6ptEKkPyvFF4Rm6zajwrsCD9RKwMibEo)";
@@ -94,16 +102,6 @@ TEST_CASE("get xpub at path") {
     const std::string m44h =
         R"(xpub69mdgvy4vNQfiXVvwnZbkAJRYcPRyrK3jXoUnzvkw3o57Mkrr65Td7wEYWcjR2WrJmamefuPfBMaw4nQ96D7rdxXRCSfXKw4CJdeoiKQpjQ)";
     std::string res = hwi->GetXpubAtPath("m/44h");
-    CHECK(m44h == res);
+    CHECK(res == m44h);
   }
-
-  // TODO: Somehow path "m" bip32_key_serialize error
-
-  // SUBCASE("m/") {
-  // const std::string m =
-  //     R"(xpub6C2BDeJ4ZD1HAcj9qpKdk7ijvUVVmAZmFUKck4MMtN9m7aRG5ieYA1EEqYukDzTyQrZWh7eqxVe6ptEKkPyvFF4Rm6zajwrsCD9RKwMibEo)";
-  // std::string res = hwi->GetXpubAtPath("m/");
-  // MESSAGE("m/84h/0/0", res);
-  // CHECK(m == res);
-  //}
 }
