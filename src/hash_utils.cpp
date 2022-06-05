@@ -1,40 +1,34 @@
 #include "tap_protocol/hash_utils.h"
-#include <wally_core.h>
-#include <wally_crypto.h>
+#include <crypto/sha256.h>
+#include <hash.h>
 
 namespace tap_protocol {
 
+static constexpr int SHA256_LEN_ = 32;
+static constexpr int HASH160_LEN_ = 20;
+
 Bytes SHA256(const Bytes &data) {
-  Bytes data_hash(SHA256_LEN);
-  if (int code =
-          wally_sha256(data.data(), data.size(), data_hash.data(), SHA256_LEN);
-      code != WALLY_OK) {
-    throw TapProtoException(TapProtoException::INVALID_HASH_LENGTH,
-                            "Invalid sha256 length");
-  }
-  return data_hash;
+  Bytes result(SHA256_LEN_);
+  CSHA256 hasher;
+  hasher.Write(data.data(), data.size());
+  hasher.Finalize(result.data());
+  return result;
 }
 
 Bytes SHA256d(const Bytes &data) {
-  Bytes data_double_hash(SHA256_LEN);
-  if (int code = wally_sha256d(data.data(), data.size(),
-                               data_double_hash.data(), SHA256_LEN);
-      code != WALLY_OK) {
-    throw TapProtoException(TapProtoException::INVALID_HASH_LENGTH,
-                            "Invalid sha256 length");
-  }
-  return data_double_hash;
+  Bytes result(SHA256_LEN_);
+  CHash256 hasher;
+  hasher.Write(data);
+  hasher.Finalize(result);
+  return result;
 }
 
 Bytes Hash160(const Bytes &data) {
-  Bytes data_hash(HASH160_LEN);
-  if (int code = wally_hash160(data.data(), data.size(), data_hash.data(),
-                               HASH160_LEN);
-      code != WALLY_OK) {
-    throw TapProtoException(TapProtoException::INVALID_HASH_LENGTH,
-                            "Invalid hash160 length");
-  }
-  return data_hash;
+  Bytes result(HASH160_LEN_);
+  CHash160 hasher;
+  hasher.Write(data);
+  hasher.Finalize(result);
+  return result;
 }
 
 }  // namespace tap_protocol

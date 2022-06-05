@@ -321,9 +321,8 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
     assert(rec_sig.size() == 65);
     Bytes r(std::begin(rec_sig) + 1, std::begin(rec_sig) + 33);
     Bytes s(std::begin(rec_sig) + 33, std::begin(rec_sig) + 65);
-    auto der_sig = ser_sig_der(r, s);
-    SigPair sig_pair{pubkey, der_sig};
-    tx.inputs[i_num].partial_sigs[pubkey.GetID()] = sig_pair;
+    tx.inputs[i_num].partial_sigs[pubkey.GetID()] =
+        SigPair{pubkey, ser_sig_der(r, s)};
   }
   return EncodePsbt(tx);
 }
