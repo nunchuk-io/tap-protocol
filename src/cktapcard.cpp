@@ -179,6 +179,7 @@ void to_json(json& j, const CKTapCard::StatusResponse& t) {
       {"tapsigner", t.tapsigner},
       {"path", t.path},
       {"testnet", t.testnet},
+      {"num_backups", t.num_backups},
   };
 }
 
@@ -193,6 +194,7 @@ void from_json(const json& j, CKTapCard::StatusResponse& t) {
   t.tapsigner = j.value("tapsigner", t.tapsigner);
   t.path = j.value("path", t.path);
   t.testnet = j.value("testnet", t.testnet);
+  t.num_backups = j.value("num_backups", t.num_backups);
 }
 
 // Tapsigner
