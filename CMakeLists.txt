@@ -9,7 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_TESTING "Build unit tests" OFF)
 
-add_library(tap-protocol STATIC
+add_library(tap-protocol SHARED
         include/tap_protocol/cktapcard.h
         include/tap_protocol/transport.h
         include/tap_protocol/tap_protocol.h
