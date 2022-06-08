@@ -8,8 +8,10 @@ if [ -z "$ANDROID_NDK" ]; then
 fi
 
 # Get the location of the android NDK build tools to build with
+asm=""
 if [ "$(uname)" == "Darwin" ]; then
     export TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64
+    asm="--with-asm=arm"
 else
     export TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64
 fi
@@ -52,7 +54,7 @@ build()
   export RANLIB=$TOOLCHAIN/bin/$TARGET-ranlib
   export STRIP=$TOOLCHAIN/bin/$TARGET-strip
 
-  ./configure --prefix="$pwd/build/android/$abi" --host=$TARGET --disable-shared --with-pic --enable-benchmark=no --enable-module-recovery --enable-module-schnorrsig --enable-module-ecdh --enable-experimental --enable-tests=no
+  ./configure --prefix="$pwd/build/android/$abi" --host=$TARGET $asm --disable-shared --with-pic --enable-benchmark=no --enable-module-recovery --enable-module-schnorrsig --enable-module-ecdh --enable-experimental --enable-tests=no
 
   local num_jobs=4
   if [ -f /proc/cpuinfo ]; then
