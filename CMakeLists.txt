@@ -10,28 +10,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build unit tests" OFF)
 
 if (ANDROID)
-    add_library(wally SHARED IMPORTED)
-    set_target_properties(wally PROPERTIES IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/third_party/libwally-core/release/lib/${ANDROID_ABI}/libwallycore.so")
-    set_target_properties(wally PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/third_party/libwally-core/release/include")
 
 elseif(WIN32)
-    message(FATAL_ERROR "Not support yet!")
 elseif(IOS)
-    add_library(secp256k1 STATIC IMPORTED)
-    set_target_properties(secp256k1 PROPERTIES IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/third_party/libwally-core/build/iphoneos/libsecp256k1.a")
 
-    add_library(wally STATIC IMPORTED)
-    set_target_properties(wally PROPERTIES IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/third_party/libwally-core/build/iphoneos/libwallycore.a")
-    set_target_properties(wally PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/third_party/libwally-core/include")
-    target_link_libraries(wally INTERFACE secp256k1)
 else()
-    add_library(secp256k1 STATIC IMPORTED)
-    set_target_properties(secp256k1 PROPERTIES IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/third_party/libwally-core/src/secp256k1/.libs/libsecp256k1.a")
 
-    add_library(wally SHARED IMPORTED)
-    set_target_properties(wally PROPERTIES IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/third_party/libwally-core/src/.libs/libwallycore.so")
-    set_target_properties(wally PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/third_party/libwally-core/include")
-    target_link_libraries(wally INTERFACE secp256k1)
 endif()
 
 add_library(tap-protocol STATIC
@@ -52,21 +36,21 @@ add_library(tap-protocol STATIC
         src/hwi_tapsigner.cpp
         )
 
-add_subdirectory(third_party/bitcoin-core)
+add_subdirectory(contrib/bitcoin-core)
 
 target_link_libraries(tap-protocol 
-        PRIVATE wally bitcoin-core
+        PRIVATE bitcoin-core
         )
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${PROJECT_SOURCE_DIR}/include
-        PUBLIC ${PROJECT_SOURCE_DIR}/third_party/include
+        PUBLIC ${PROJECT_SOURCE_DIR}/contrib/include
         )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE TAPPROTOCOL_LIBRARY)
 
 target_precompile_headers(${PROJECT_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/third_party/include/nlohmann/json.hpp)
+        PRIVATE ${PROJECT_SOURCE_DIR}/contrib/include/nlohmann/json.hpp)
 
 #set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 #set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -78,7 +62,7 @@ if (BUILD_TESTING)
     add_library(test_main OBJECT tests/unit.cpp)
 
     target_include_directories(test_main
-            PUBLIC ${PROJECT_SOURCE_DIR}/tests/third_party/doctest
+            PUBLIC ${PROJECT_SOURCE_DIR}/tests/contrib/doctest
             PUBLIC ${Boost_INCLUDE_DIRS}
             )
     target_link_libraries(test_main ${Boost_LIBRARIES})
@@ -95,7 +79,7 @@ if (BUILD_TESTING)
         add_executable(${testcase} ${file} $<TARGET_OBJECTS:test_main>)
         target_link_libraries(${testcase} ${PROJECT_NAME})
         target_include_directories(${testcase} PUBLIC
-                "${PROJECT_SOURCE_DIR}/tests/third_party/doctest"
+                "${PROJECT_SOURCE_DIR}/tests/contrib/doctest"
                 "${PROJECT_SOURCE_DIR}/include"
                 )
 

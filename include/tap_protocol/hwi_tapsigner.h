@@ -7,7 +7,7 @@
 #include "tap_protocol/cktapcard.h"
 #include "tap_protocol/tap_protocol.h"
 
-struct ext_key;
+struct CExtPubKey;
 
 namespace tap_protocol {
 
@@ -42,6 +42,7 @@ class HWITapsigner {
   enum Chain : int {
     MAIN = 0,
     TEST = 1,
+    SIG = TEST,
   };
 
   virtual void SetChain(Chain chain) = 0;
@@ -61,7 +62,6 @@ class HWITapsigner {
 
 class HWITapsignerImpl : public HWITapsigner {
  public:
-  HWITapsignerImpl() = default;
   HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer,
                    PromptCVCCallback cvc_callback);
   void SetChain(Chain chain) override;
@@ -76,16 +76,16 @@ class HWITapsignerImpl : public HWITapsigner {
   Bytes BackupDevice() override;
   bool RestoreDevice() override;
   void SetPromptCVCCallback(PromptCVCCallback func) override;
-  ~HWITapsignerImpl() = default;
+  ~HWITapsignerImpl() override = default;
 
  private:
-  ext_key GetPubkeyAtPath(const std::string &derivation_path);
+  CExtPubKey GetPubkeyAtPath(const std::string &derivation_path);
   void GetCVC(const std::string &message = "Please provide CVC:");
 
  private:
   Chain chain_ = MAIN;
   PromptCVCCallback cvc_callback_;
-  std::unique_ptr<Tapsigner> tap_signer_;
+  std::unique_ptr<Tapsigner> device_;
   std::string cvc_;
 };
 

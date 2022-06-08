@@ -17,3 +17,16 @@ TEST_CASE("CT_pick_keypair") {
 
   MESSAGE("done CT_pick_keypair");
 }
+
+
+TEST_CASE("CT_ecdh") {
+  auto [priv, pub] = tap_protocol::CT_pick_keypair();
+
+  auto privStr = tap_protocol::Bytes2Str(priv);
+  auto pubStr = tap_protocol::Bytes2Str(pub);
+
+  auto sessionKey = tap_protocol::CT_ecdh(pub, priv);
+  CHECK(!sessionKey.empty());
+
+  MESSAGE("done CT_ecdh");
+}

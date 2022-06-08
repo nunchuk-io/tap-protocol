@@ -17,24 +17,13 @@ add_subdirectory(tap-protocol)
 target_link_libraries("${PROJECT_NAME}" PUBLIC tap-protocol)
 ```
 
-## Build libwally-core ([detail](https://github.com/ElementsProject/libwally-core#building))
+## Build secp256k1
 ```
-# For Android
-# https://github.com/ElementsProject/libwally-core#android
-# you may wanna export ANDROID_NDK=/path/to/android-ndk # r22 is the minimum supported version
-$ cd third_party/libwally-core
-$ ./tools/build_android_libraries.sh
-
-# For Linux, MacOS, iOS
-# https://github.com/ElementsProject/libwally-core#building
-$ cd third_party/libwally-core
-$ ./tools/autogen.sh
-$ ./configure --disable-tests
-$ make
+cd contrib/bitcoin-core/src/secp256k1
+./configure --disable-shared --with-pic --enable-benchmark=no --enable-module-recovery --enable-module-schnorrsig --enable-module-ecdh --enable-experimental
 ```
 
 # Use with JNI
-
 
 Android Intent that handle NFC event
 
