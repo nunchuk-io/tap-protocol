@@ -1,7 +1,9 @@
 #include <memory>
+#include <sstream>
 #include <string>
 #include <base58.h>
 #include <util/strencodings.h>
+#include "serialize.h"
 #include "tap_protocol/cktapcard.h"
 #include "tap_protocol/hash_utils.h"
 #include "tap_protocol/utils.h"
@@ -432,26 +434,6 @@ Bytes Tapsigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
   }
   throw TapProtoException(TapProtoException::EXCEEDED_RETRY,
                           "Failed to sign digest after 5 retries. Try again.");
-}
-
-Bytes Tapsigner::SignMessage(const Bytes& msg, const std::string& cvc,
-                             const std::string& subpath) {
-  auto ser_compact_size = [](size_t size) {
-    if (size < 253) {
-      return Bytes{static_cast<unsigned char>(size)};
-    }
-    // TODO: handle bigger message
-    return Bytes{};
-  };
-  std::string prepare_msg;
-  prepare_msg += '\x18';
-  prepare_msg += "Bitcoin Signed Message:\n";
-  prepare_msg += ser_compact_size(msg.size())[0];
-  prepare_msg += std::string(std::begin(msg), std::end(msg));
-
-  const Bytes md = SHA256d({std::begin(prepare_msg), std::end(prepare_msg)});
-
-  return Sign(md, cvc, 0, subpath);
 }
 
 }  // namespace tap_protocol

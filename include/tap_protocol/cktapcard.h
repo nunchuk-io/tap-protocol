@@ -102,8 +102,6 @@ class Tapsigner : public CKTapCard {
                   int slot = 0) override;
   Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
              const std::string& subpath = {}) override;
-  Bytes SignMessage(const Bytes& msg, const std::string& cvc,
-                    const std::string& subpath = {});
 };
 
 }  // namespace tap_protocol

@@ -9,15 +9,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_TESTING "Build unit tests" OFF)
 
-if (ANDROID)
-
-elseif(WIN32)
-elseif(IOS)
-
-else()
-
-endif()
-
 add_library(tap-protocol STATIC
         include/tap_protocol/cktapcard.h
         include/tap_protocol/transport.h

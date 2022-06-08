@@ -21,7 +21,6 @@ using uchar = unsigned char;
 // Require to call CPubKey::IsFullyValid() when parse psbt
 static const ECCVerifyHandle verify_handle;
 
-// MAIN
 static const std::vector<unsigned char> BASE58_PREFIX_PUBKEY[] = {
     {0x04, 0x88, 0xB2, 0x1E},  // MAIN
     {0x04, 0x35, 0x87, 0xCF},  // TEST, SIG
@@ -85,7 +84,7 @@ static std::tuple<bool, int, std::vector<unsigned char>> is_p2wpkh(
 }
 
 static Bytes ser_sig_der(Bytes r, Bytes s) {
-  auto remove_leading_zero = [](Bytes bytes) {
+  const auto remove_leading_zero = [](Bytes bytes) {
     for (auto it = std::begin(bytes); it != std::end(bytes); ++it) {
       if (*it == 0x0) {
         continue;
@@ -159,7 +158,7 @@ static std::pair<std::vector<uint32_t>, std::vector<uint32_t>> split_bip32_path(
   return {hardened, non_hardened};
 }
 
-inline PartiallySignedTransaction DecodePsbt(const std::string &base64_psbt) {
+static PartiallySignedTransaction DecodePsbt(const std::string &base64_psbt) {
   PartiallySignedTransaction psbtx;
   std::string error;
   if (!DecodeBase64PSBT(psbtx, base64_psbt, error)) {
@@ -169,7 +168,7 @@ inline PartiallySignedTransaction DecodePsbt(const std::string &base64_psbt) {
   return psbtx;
 }
 
-inline std::string EncodePsbt(const PartiallySignedTransaction &psbtx) {
+static std::string EncodePsbt(const PartiallySignedTransaction &psbtx) {
   CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
   ssTx << psbtx;
   return EncodeBase64(MakeUCharSpan(ssTx));
@@ -347,8 +346,9 @@ std::string HWITapsignerImpl::GetXpubAtPath(
   Bytes pubkey_encoded(BIP32_EXTKEY_SIZE);
   pubkey.Encode(pubkey_encoded.data());
 
-  packed << MakeUCharSpan(BASE58_PREFIX_PUBKEY[chain_]) << MakeUCharSpan(pubkey_encoded);
-  
+  packed << MakeUCharSpan(BASE58_PREFIX_PUBKEY[chain_])
+         << MakeUCharSpan(pubkey_encoded);
+
   auto checksum = SHA256d({std::begin(packed), std::end(packed)});
   checksum.resize(4);
 

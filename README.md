@@ -19,8 +19,14 @@ target_link_libraries("${PROJECT_NAME}" PUBLIC tap-protocol)
 
 ## Build secp256k1
 ```
-cd contrib/bitcoin-core/src/secp256k1
-./configure --disable-shared --with-pic --enable-benchmark=no --enable-module-recovery --enable-module-schnorrsig --enable-module-ecdh --enable-experimental
+# Android
+$ ./tool/build_android.sh
+
+# iOS
+$ ./tool/build_ios.sh
+
+# Linux
+$ ./tool/build_linux.sh
 ```
 
 # Use with JNI

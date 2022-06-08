@@ -187,9 +187,10 @@ TEST_CASE("sign digest") {
       std::make_unique<CardEmulator>();
   tap_protocol::Tapsigner tapSigner(std::move(tp));
 
-  std::string msg = "nunchuk!!!";
+  auto digest = tap_protocol::RandomBytes(32);
   tap_protocol::Bytes resp =
-      tapSigner.SignMessage({std::begin(msg), std::end(msg)}, "123456");
+      tapSigner.Sign({std::begin(digest), std::end(digest)}, "123456");
   CHECK(!resp.empty());
+  MESSAGE("digest:", tap_protocol::Bytes2Str(digest));
   MESSAGE("signed digest:", tap_protocol::Bytes2Str(resp));
 }
