@@ -11,7 +11,7 @@ fi
 asm=""
 if [ "$(uname)" == "Darwin" ]; then
     export TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64
-    asm="--with-asm=arm"
+    asm="--with-asm=no"
 else
     export TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64
 fi

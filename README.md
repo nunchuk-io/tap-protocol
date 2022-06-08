@@ -23,7 +23,7 @@ target_link_libraries("${PROJECT_NAME}" PUBLIC tap-protocol)
 $ ./tool/build_android.sh
 
 # iOS
-$ ./tool/build_ios.sh
+$ PLATFORM_NAME=iphoneos CONFIGURATION=debug ARCHS=arm64 ./tools/build_ios.sh
 
 # Linux
 $ ./tool/build_linux.sh
