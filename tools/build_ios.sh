@@ -4,6 +4,7 @@ set -e # abort if any command fails
 export PATH=$PATH:/opt/homebrew/bin/
 
 cd contrib/bitcoin-core/src/secp256k1
+./autogen.sh
 
 BUILD_DIR="$(pwd)/build"
 

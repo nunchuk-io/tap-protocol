@@ -27,6 +27,7 @@ cd -
 export API=21
 
 cd contrib/bitcoin-core/src/secp256k1
+./autogen.sh
 
 pwd=`pwd`
 
