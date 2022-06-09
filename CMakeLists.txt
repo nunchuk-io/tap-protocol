@@ -8,8 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_TESTING "Build unit tests" OFF)
+option(BUILD_SHARED_LIB_TAPPROTOCOL "Build as shared library" ON)
 
-add_library(tap-protocol SHARED
+set(${PROJECT_NAME}_HEADERS
         include/tap_protocol/cktapcard.h
         include/tap_protocol/transport.h
         include/tap_protocol/tap_protocol.h
@@ -17,6 +18,9 @@ add_library(tap-protocol SHARED
         include/tap_protocol/secp256k1_utils.h
         include/tap_protocol/hash_utils.h
         include/tap_protocol/hwi_tapsigner.h
+        )
+
+set(${PROJECT_NAME}_SOURCES 
         src/utils.cpp
         src/secp256k1_utils.cpp
         src/cktapcard.cpp
@@ -27,13 +31,19 @@ add_library(tap-protocol SHARED
         src/hwi_tapsigner.cpp
         )
 
-if (UNIX)
+if (${BUILD_SHARED_LIB_TAPPROTOCOL}) 
+  add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_HEADERS} ${${PROJECT_NAME}_SOURCES})
+else()
+  add_library(${PROJECT_NAME} STATIC ${${PROJECT_NAME}_HEADERS} ${${PROJECT_NAME}_SOURCES})
+endif()
+
+if (UNIX AND ${BUILD_SHARED_LIB_TAPPROTOCOL})
   add_compile_options(-fPIC)
 endif()
 
 add_subdirectory(contrib/bitcoin-core)
 
-target_link_libraries(tap-protocol 
+target_link_libraries(${PROJECT_NAME} 
         PRIVATE bitcoin-core
         )
 

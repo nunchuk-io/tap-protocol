@@ -1,4 +1,5 @@
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <base58.h>
@@ -57,8 +58,8 @@ CKTapCard::CKTapCard(std::unique_ptr<Transport> transport)
   FirstLook();
 }
 
-void CKTapCard::FirstLook() {
-  const auto status = Status();
+CKTapCard::StatusResponse CKTapCard::FirstLook() {
+  auto status = Status();
   if (status.proto != 1) {
     throw TapProtoException(TapProtoException::UNKNOW_PROTO_VERSION,
                             "Unknown card protocol version");
@@ -66,6 +67,12 @@ void CKTapCard::FirstLook() {
   // TODO: tampered
   card_pubkey_ = status.pubkey;
   card_ident_ = CardPubkeyToIdent(card_pubkey_);
+  applet_version_ = status.ver;
+  birth_height_ = status.birth;
+  is_testnet_ = status.testnet;
+  auth_delay_ = status.auth_delay;
+  is_tapsigner_ = status.tapsigner;
+  return status;
 }
 
 json CKTapCard::Send(const json& msg) {
@@ -158,7 +165,7 @@ std::string CKTapCard::CertificateCheck() {
 
   const auto nonce = PickNonce();
   const json check = Send({{"cmd", "check"}, {"nonce", json::binary_t(nonce)}});
-  // TODO: assigne self._certs_checked = True
+  // TODO: assign self._certs_checked = True
 
   return verify_certs(st, check, certs, nonce);
 }
@@ -167,20 +174,26 @@ std::string CKTapCard::GetIdent() const noexcept {
   return {std::begin(card_ident_), std::end(card_ident_)};
 }
 
+std::string CKTapCard::GetAppletVersion() const noexcept {
+  return applet_version_;
+}
+int CKTapCard::GetBirthHeight() const noexcept { return birth_height_; }
+bool CKTapCard::IsTestnet() const noexcept { return is_testnet_; }
+int CKTapCard::GetAuthDelay() const noexcept { return auth_delay_; }
+bool CKTapCard::IsTapsigner() const noexcept { return is_tapsigner_; }
+
 void to_json(json& j, const CKTapCard::StatusResponse& t) {
   j = {
-      {"proto", t.proto},
-      {"ver", t.ver},
-      {"birth", t.birth},
-      {"slots", t.slots},
-      {"address", t.address},
-      {"pubkey", t.pubkey},
-      {"card_nonce", t.card_nonce},
-      {"tapsigner", t.tapsigner},
-      {"path", t.path},
-      {"testnet", t.testnet},
-      {"num_backups", t.num_backups},
+      {"proto", t.proto},           {"ver", t.ver},
+      {"birth", t.birth},           {"slots", t.slots},
+      {"address", t.address},       {"pubkey", t.pubkey},
+      {"card_nonce", t.card_nonce}, {"tapsigner", t.tapsigner},
+      {"testnet", t.testnet},       {"num_backups", t.num_backups},
+      {"auth_delay", t.auth_delay},
   };
+  if (t.path) {
+    j["path"] = *t.path;
+  }
 }
 
 void from_json(const json& j, CKTapCard::StatusResponse& t) {
@@ -192,9 +205,12 @@ void from_json(const json& j, CKTapCard::StatusResponse& t) {
   t.pubkey = j.value("pubkey", t.pubkey);
   t.card_nonce = j.value("card_nonce", t.card_nonce);
   t.tapsigner = j.value("tapsigner", t.tapsigner);
-  t.path = j.value("path", t.path);
   t.testnet = j.value("testnet", t.testnet);
   t.num_backups = j.value("num_backups", t.num_backups);
+  t.auth_delay = j.value("auth_delay", t.auth_delay);
+  if (j.contains("path")) {
+    t.path = j["path"];
+  }
 }
 
 // Tapsigner
@@ -240,13 +256,28 @@ void from_json(const nlohmann::json& j, Tapsigner::ChangeResponse& t) {
   t.card_nonce = j.value("card_nonce", t.card_nonce);
 }
 
+Tapsigner::Tapsigner(std::unique_ptr<Transport> transport) {
+  transport_ = std::move(transport);
+  auto st = FirstLook();
+  // TODO: update on status
+  number_of_backup_ = st.num_backups;
+  if (st.path) {
+    init_derivation_ = Path2Str(*st.path);
+  }
+}
+
+int Tapsigner::GetNumberOfBackups() const noexcept { return number_of_backup_; }
+std::optional<std::string> Tapsigner::GetInitDerivation() const noexcept {
+  return init_derivation_;
+}
+
 std::string Tapsigner::GetDerivation() {
   const auto status = Status();
-  if (status.path.empty()) {
+  if (!status.path) {
     throw TapProtoException(TapProtoException::NO_PRIVATE_KEY_PICKED,
                             "No private key picked yet.");
   }
-  return Path2Str(status.path);
+  return Path2Str(*status.path);
 }
 
 Tapsigner::DeriveResponse Tapsigner::Derive(const std::string& path,

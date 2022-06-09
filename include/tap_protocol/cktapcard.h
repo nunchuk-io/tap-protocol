@@ -2,6 +2,7 @@
 #define CKTAPCARD_H
 
 #include <memory>
+#include <optional>
 #include "nlohmann/json.hpp"
 #include "transport.h"
 
@@ -23,9 +24,10 @@ class CKTapCard {
     nlohmann::json::binary_t pubkey;
     nlohmann::json::binary_t card_nonce;
     bool tapsigner{};
-    std::vector<uint32_t> path;
+    std::optional<std::vector<uint32_t>> path;
     int num_backups{};
     bool testnet{};
+    int auth_delay{};
 
     friend void to_json(nlohmann::json& j, const StatusResponse& t);
     friend void from_json(const nlohmann::json& j, StatusResponse& t);
@@ -43,29 +45,42 @@ class CKTapCard {
   std::pair<Bytes, nlohmann::json> SendAuth(const nlohmann::json& msg,
                                             const Bytes& cvc = {});
   std::string GetIdent() const noexcept;
+  std::string GetAppletVersion() const noexcept;
+  int GetBirthHeight() const noexcept;
+  bool IsTestnet() const noexcept;
+  int GetAuthDelay() const noexcept;
+  bool IsTapsigner() const noexcept;
 
-  virtual StatusResponse Status();
-  virtual std::string NFC();
+  StatusResponse Status();
+  std::string NFC();
+  std::string CertificateCheck();
   virtual NewResponse New(const Bytes& chain_code, const std::string& cvc,
                           int slot = 0) = 0;
-  virtual std::string CertificateCheck();
   virtual Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
                      const std::string& subpath = {}) = 0;
 
  protected:
-  void FirstLook();
-
- protected:
+  CKTapCard() = default;
+  StatusResponse FirstLook();
   std::unique_ptr<Transport> transport_;
+
+ private:
   nlohmann::json::binary_t card_nonce_;
   nlohmann::json::binary_t card_pubkey_;
   nlohmann::json::binary_t card_ident_;
+  std::string applet_version_;
+  int birth_height_{};
+  bool is_testnet_{};
+  int auth_delay_{};
+  bool is_tapsigner_{};
+  int number_of_backup_{};
 };
 
 class Tapsigner : public CKTapCard {
   using CKTapCard::CKTapCard;
 
  public:
+  explicit Tapsigner(std::unique_ptr<Transport> transport);
   struct DeriveResponse {
     nlohmann::json::binary_t sig;
     nlohmann::json::binary_t chain_code;
@@ -103,6 +118,13 @@ class Tapsigner : public CKTapCard {
                   int slot = 0) override;
   Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
              const std::string& subpath = {}) override;
+
+  int GetNumberOfBackups() const noexcept;
+  std::optional<std::string> GetInitDerivation() const noexcept;
+
+ private:
+  int number_of_backup_{};
+  std::optional<std::string> init_derivation_;
 };
 
 }  // namespace tap_protocol
