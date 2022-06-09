@@ -27,6 +27,10 @@ add_library(tap-protocol SHARED
         src/hwi_tapsigner.cpp
         )
 
+if (UNIX)
+  add_compile_options(-fPIC)
+endif()
+
 add_subdirectory(contrib/bitcoin-core)
 
 target_link_libraries(tap-protocol 

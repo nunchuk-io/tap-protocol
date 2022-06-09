@@ -41,11 +41,13 @@ class HWITapsigner {
 
   enum Chain : int {
     MAIN = 0,
-    TEST = 1,
-    SIG = TEST,
+    TESTNET = 1,
+    SIGNET = TESTNET,
   };
 
   virtual void SetChain(Chain chain) = 0;
+  virtual void SetDevice(Tapsigner *device) = 0;
+  virtual void SetDevice(Tapsigner *device, const std::string &cvc) = 0;
   virtual std::string SignTx(const std::string &base64_psbt) = 0;
   virtual std::string SignMessage(const std::string &message,
                                   const std::string &derivation_path) = 0;
@@ -62,9 +64,12 @@ class HWITapsigner {
 
 class HWITapsignerImpl : public HWITapsigner {
  public:
-  HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer,
-                   PromptCVCCallback cvc_callback);
+  HWITapsignerImpl() = default;
+  HWITapsignerImpl(Tapsigner *device, const std::string &cvc);
+  HWITapsignerImpl(Tapsigner *device, PromptCVCCallback cvc_callback);
   void SetChain(Chain chain) override;
+  void SetDevice(Tapsigner *device) override;
+  void SetDevice(Tapsigner *device, const std::string &cvc) override;
   std::string SignTx(const std::string &base64_psbt) override;
   std::string SignMessage(const std::string &message,
                           const std::string &derivation_path) override;
@@ -85,12 +90,16 @@ class HWITapsignerImpl : public HWITapsigner {
  private:
   Chain chain_ = MAIN;
   PromptCVCCallback cvc_callback_;
-  std::unique_ptr<Tapsigner> device_;
+  Tapsigner *device_;
   std::string cvc_;
 };
 
-std::unique_ptr<HWITapsigner> MakeHWITapsigner(
-    std::unique_ptr<Tapsigner> tap_signer, PromptCVCCallback cvc_callback);
+std::unique_ptr<HWITapsigner> MakeHWITapsigner(HWITapsigner::Chain chain);
+
+std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
+                                               const std::string &cvc);
+std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
+                                               PromptCVCCallback cvc_callback);
 
 }  // namespace tap_protocol
 

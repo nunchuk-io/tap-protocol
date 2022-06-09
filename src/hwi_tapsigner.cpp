@@ -410,6 +410,13 @@ std::string HWITapsignerImpl::SignMessage(const std::string &message,
 
 void HWITapsignerImpl::SetChain(Chain chain) { chain_ = chain; }
 
+void HWITapsignerImpl::SetDevice(Tapsigner *device) { device_ = device; }
+
+void HWITapsignerImpl::SetDevice(Tapsigner *device, const std::string &cvc) {
+  device_ = device;
+  cvc_callback_ = [cvc](const std::string &) { return cvc; };
+}
+
 bool HWITapsignerImpl::SetupDevice() {
   GetCVC();
   auto chain_code = SHA256d(RandomBytes(128));
@@ -437,13 +444,27 @@ void HWITapsignerImpl::GetCVC(const std::string &message) {
   }
 }
 
-HWITapsignerImpl::HWITapsignerImpl(std::unique_ptr<Tapsigner> tap_signer,
+HWITapsignerImpl::HWITapsignerImpl(Tapsigner *device,
                                    PromptCVCCallback cvc_callback)
-    : device_(std::move(tap_signer)), cvc_callback_(std::move(cvc_callback)) {}
+    : device_(device), cvc_callback_(std::move(cvc_callback)) {}
 
-std::unique_ptr<HWITapsigner> MakeHWITapsigner(
-    std::unique_ptr<Tapsigner> tap_signer, PromptCVCCallback cvc_callback) {
-  return std::make_unique<HWITapsignerImpl>(std::move(tap_signer),
-                                            std::move(cvc_callback));
+HWITapsignerImpl::HWITapsignerImpl(Tapsigner *device, const std::string &cvc)
+    : device_(device),
+      cvc_callback_([=](const std::string &) { return cvc; }) {}
+
+std::unique_ptr<HWITapsigner> MakeHWITapsigner(HWITapsigner::Chain chain) {
+  auto hwi = std::make_unique<HWITapsignerImpl>();
+  hwi->SetChain(chain);
+  return hwi;
+}
+
+std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
+                                               const std::string &cvc) {
+  return std::make_unique<HWITapsignerImpl>(device, cvc);
+}
+
+std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
+                                               PromptCVCCallback cvc_callback) {
+  return std::make_unique<HWITapsignerImpl>(device, cvc_callback);
 }
 }  // namespace tap_protocol
