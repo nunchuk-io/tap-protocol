@@ -205,7 +205,7 @@ void HWITapsignerImpl::SetPromptCVCCallback(PromptCVCCallback func) {
 std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
   auto tx = DecodePsbt(base64_psbt);
   auto &blank_tx = get_unsigned_tx(tx);
-  auto master_fp = GetMasterFingerprint();
+  Bytes master_fp = GetMasterFingerprintBytes();
 
   GetCVC();
 
@@ -354,10 +354,13 @@ std::string HWITapsignerImpl::GetXpubAtPath(
   return EncodeBase58(packed);
 }
 
-Bytes HWITapsignerImpl::GetMasterFingerprint() {
+Bytes HWITapsignerImpl::GetMasterFingerprintBytes() {
   auto pubkey = GetPubkeyAtPath("m");
   auto hashed = Hash160(pubkey.pubkey);
   return {std::begin(hashed), std::begin(hashed) + 4};
+}
+std::string HWITapsignerImpl::GetMasterFingerprint() {
+  return Bytes2Str(GetMasterFingerprintBytes());
 }
 
 std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,

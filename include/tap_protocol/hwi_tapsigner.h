@@ -40,7 +40,7 @@ class HWITapsigner {
   virtual std::string SignTx(const std::string &base64_psbt) = 0;
   virtual std::string SignMessage(const std::string &message,
                                   const std::string &derivation_path) = 0;
-  virtual Bytes GetMasterFingerprint() = 0;
+  virtual std::string GetMasterFingerprint() = 0;
   virtual std::string GetMasterXpub(AddressType address_type = WIT,
                                     int account = 0) = 0;
   virtual std::string GetXpubAtPath(const std::string &derivation_path) = 0;
@@ -62,7 +62,7 @@ class HWITapsignerImpl : public HWITapsigner {
   std::string SignTx(const std::string &base64_psbt) override;
   std::string SignMessage(const std::string &message,
                           const std::string &derivation_path) override;
-  Bytes GetMasterFingerprint() override;
+  std::string GetMasterFingerprint() override;
   std::string GetMasterXpub(AddressType address_type = WIT,
                             int account = 0) override;
   std::string GetXpubAtPath(const std::string &path) override;
@@ -73,6 +73,7 @@ class HWITapsignerImpl : public HWITapsigner {
   ~HWITapsignerImpl() override = default;
 
  private:
+  Bytes GetMasterFingerprintBytes();
   CExtPubKey GetPubkeyAtPath(const std::string &derivation_path);
   void GetCVC(const std::string &message = "Please provide CVC:");
 

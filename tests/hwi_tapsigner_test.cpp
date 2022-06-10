@@ -24,7 +24,7 @@ TEST_CASE("HWI Tapsigner test") {
   SUBCASE("master fingerprint") {
     auto masterFingerprint = hwi->GetMasterFingerprint();
     CHECK(!masterFingerprint.empty());
-    MESSAGE("masterFingerprint:", tap_protocol::Bytes2Str(masterFingerprint));
+    MESSAGE("masterFingerprint:", masterFingerprint);
   };
 
   SUBCASE("master xpub") {
