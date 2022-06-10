@@ -91,14 +91,14 @@ Bytes CT_sig_to_pubkey(const Bytes& pubkey, const Bytes& sig) {
   if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
           get_secp256k1_context(), &ecsig, sig.data() + 1, rec_id)) {
     throw TapProtoException(
-        TapProtoException::UNKNOW_ERROR,
+        TapProtoException::SIG_TO_PUBKEY_FAIL,
         "CT_sig_to_pubkey fail ecdsa recoverable signature");
   }
 
   secp256k1_pubkey ecpub;
   if (!secp256k1_ecdsa_recover(get_secp256k1_context(), &ecpub, &ecsig,
                                pubkey.data())) {
-    throw TapProtoException(TapProtoException::UNKNOW_ERROR,
+    throw TapProtoException(TapProtoException::SIG_TO_PUBKEY_FAIL,
                             "CT_sig_to_pubkey fail ecdsa recover");
   }
 
@@ -106,7 +106,7 @@ Bytes CT_sig_to_pubkey(const Bytes& pubkey, const Bytes& sig) {
   if (!secp256k1_ec_pubkey_serialize(get_secp256k1_context(), result.data(),
                                      &output_len, &ecpub,
                                      SECP256K1_EC_COMPRESSED)) {
-    throw TapProtoException(TapProtoException::UNKNOW_ERROR,
+    throw TapProtoException(TapProtoException::SIG_TO_PUBKEY_FAIL,
                             "CT_sig_to_pubkey ec pubkey serialize");
   }
 

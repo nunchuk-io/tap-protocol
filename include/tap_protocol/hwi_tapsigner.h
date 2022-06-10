@@ -11,17 +11,6 @@ struct CExtPubKey;
 
 namespace tap_protocol {
 
-class HWITapsigerException : public TapProtoException {
- public:
-  using TapProtoException::TapProtoException;
-
-  static const int PSBT_PARSE_ERROR = -2001;
-  static const int PSBT_INVALID = -2002;
-  static const int MALFORMED_BIP32_PATH = -2003;
-
-  static const int UNKNOW_ERROR = -2999;
-};
-
 using PromptCVCCallback =
     std::function<std::optional<std::string>(const std::string &message)>;
 

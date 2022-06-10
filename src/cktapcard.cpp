@@ -32,7 +32,7 @@ static const std::map<Bytes, std::string> FACTORY_ROOT_KEYS = {
 
 Bytes CardPubkeyToIdent(const Bytes& card_pubkey) {
   if (card_pubkey.size() != 33) {
-    throw TapProtoException(TapProtoException::INVALID_PUBKEY_COMPRESS_LENGTH,
+    throw TapProtoException(TapProtoException::INVALID_PUBKEY_LENGTH,
                             "Expecting compressed pubkey");
   }
 
@@ -82,7 +82,8 @@ json CKTapCard::Send(const json& msg) {
   }
 
   if (resp.contains("error")) {
-    throw TapProtoException(resp.value("code", 500), resp["error"]);
+    throw TapProtoException(
+        resp.value("code", TapProtoException::DEFAULT_ERROR), resp["error"]);
   }
   return resp;
 }
@@ -134,8 +135,8 @@ std::string CKTapCard::CertificateCheck() {
     msg.insert(std::end(msg), std::begin(my_nonce), std::end(my_nonce));
 
     if (msg.size() != 8 + CARD_NONCE_SIZE + USER_NONCE_SIZE) {
-      throw TapProtoException(TapProtoException::UNKNOW_ERROR,
-                              "Invalid size " + std::to_string(msg.size()));
+      throw TapProtoException(TapProtoException::INVALID_CARD,
+                              "Invalid msg size " + std::to_string(msg.size()));
     }
 
     const Bytes msg_sha256 = SHA256(msg);
@@ -328,8 +329,8 @@ std::string Tapsigner::Pubkey(const std::string& cvc) {
     msg.push_back(0x00);
 
     if (msg.size() != 8 + CARD_NONCE_SIZE + USER_NONCE_SIZE + 1) {
-      throw TapProtoException(TapProtoException::UNKNOW_ERROR,
-                              "Invalid size " + std::to_string(msg.size()));
+      throw TapProtoException(TapProtoException::INVALID_PUBKEY_LENGTH,
+                              "Invalid length " + std::to_string(msg.size()));
     }
 
     const json::binary_t pubkey = read["pubkey"];
@@ -411,7 +412,7 @@ Bytes Tapsigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
       }
       return rec_sig;
     }
-    throw TapProtoException(TapProtoException::UNKNOW_ERROR,
+    throw TapProtoException(TapProtoException::SIGN_ERROR,
                             "Sig may not be created by that address/pubkey??");
   };
 
@@ -468,5 +469,7 @@ Bytes Tapsigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
   throw TapProtoException(TapProtoException::EXCEEDED_RETRY,
                           "Failed to sign digest after 5 retries. Try again.");
 }
+
+Tapsigner::WaitResponse Tapsigner::Wait() { return Send({{"cmd", "wait"}}); }
 
 }  // namespace tap_protocol

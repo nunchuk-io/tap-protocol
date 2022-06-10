@@ -19,6 +19,7 @@ TEST_CASE("HWI Tapsigner test") {
       std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
 
   auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
 
   SUBCASE("master fingerprint") {
     auto masterFingerprint = hwi->GetMasterFingerprint();
@@ -43,6 +44,7 @@ TEST_CASE("sign psbt multisig") {
       std::make_unique<tap_protocol::Tapsigner>(std::move(transport));
 
   auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
   // const std::string expected_signed_tx =
   //     R"(cHNidP8BAHECAAAAAbaRLv2dwhA2qDirXFYNC9kxbQi5zvIlJvhRgjlJcBdAAQAAAAD9////AhAnAAAAAAAAFgAUFXSeP6uXhBP8u1KfhTzbmWX3zqHsOJUAAAAAABYAFLvdDJXh7MI0aJDBJ/gP84Bu8GyrAAAAAAABAHECAAAAAXrmtsvP0awn2qYs/ZkvYFpuiWVqdvLC5lsQDus+Hg1nAQAAAAD9////AhAnAAAAAAAAFgAUPyYxfgarAm+2nXG+cmkATjuEpVSJYJUAAAAAABYAFMs/gBI6mDaaW9+mcSpkzNGdGKneAAAAAAEBH4lglQAAAAAAFgAUyz+AEjqYNppb36ZxKmTM0Z0Yqd4iAgNEOefOExaGH9c2ZsMeq8hM30iNM276iyKdbO7DJidy7kgwRQIhAINS7fS6dgbYiPEU+1LYH2ct8jqRrN2D3H7d/kkOfbQeAiBXgcSnBEjYljn32885LlNpu3Brkhg49o0w5BKnq0f+/QEiBgNEOefOExaGH9c2ZsMeq8hM30iNM276iyKdbO7DJidy7hiTgGJuVAAAgAAAAIAAAACAAQAAAAIAAAAAACICAnSsqeOwIu1mHItlHQM+TyK3mH+qqVxgJX3MCyzHLcQhGJOAYm5UAACAAAAAgAAAAIABAAAAAwAAAAA=)";
 
@@ -67,6 +69,7 @@ TEST_CASE("sign psbt") {
       std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
 
   auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
 
   auto signed_tx = hwi->SignTx(psbt);
 
@@ -81,7 +84,6 @@ TEST_CASE("sign message") {
       std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
 
   auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
-  //  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TEST);
   auto sig = hwi->SignMessage("nunchuk", "m/84h/0/0");
   CHECK(!sig.empty());
 }
@@ -94,7 +96,7 @@ TEST_CASE("get xpub at path") {
       std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
 
   auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
-  //  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TEST);
+  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
   SUBCASE("m/") {
     std::string res = hwi->GetXpubAtPath("m/");
     MESSAGE("path m/: ", res);

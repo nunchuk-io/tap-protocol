@@ -107,6 +107,13 @@ class Tapsigner : public CKTapCard {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(BackupResponse, data, card_nonce);
   };
 
+  struct WaitResponse {
+    bool success{};
+    int auth_delay{};
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(WaitResponse, success, auth_delay);
+  };
+
   DeriveResponse Derive(const std::string& path, const std::string& cvc);
   std::string GetXFP(const std::string& cvc);
   std::string Xpub(const std::string& cvc, bool master);
@@ -118,6 +125,7 @@ class Tapsigner : public CKTapCard {
                   int slot = 0) override;
   Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
              const std::string& subpath = {}) override;
+  WaitResponse Wait();
 
   int GetNumberOfBackups() const noexcept;
   std::optional<std::string> GetInitDerivation() const noexcept;

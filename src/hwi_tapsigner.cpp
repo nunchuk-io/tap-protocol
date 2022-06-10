@@ -61,8 +61,8 @@ static int get_bip44_purpose(HWITapsigner::AddressType address_type) {
     case HWITapsigner::AddressType::TAP:
       return 86;
   }
-  throw HWITapsigerException(HWITapsigerException::UNKNOW_ERROR,
-                             "Unknown address type");
+  throw TapProtoException(TapProtoException::INVALID_ADDRESS_TYPE,
+                          "Invalid address type");
 }
 
 static bool is_p2pkh(const CScript &script) {
@@ -126,8 +126,7 @@ static CMutableTransaction &get_unsigned_tx(PartiallySignedTransaction &psbt) {
   }
   // TODO:
   // https://github.com/bitcoin-core/HWI/blob/a2d1245d01dfac7820ea5197a8e1990507948ee9/hwilib/psbt.py#L1015
-  throw HWITapsigerException(HWITapsigerException::PSBT_INVALID,
-                             "Empty transaction");
+  throw TapProtoException(TapProtoException::PSBT_INVALID, "Empty transaction");
 }
 
 static bool is_hardened(int64_t component) { return component >= HARDENED; }
@@ -138,8 +137,8 @@ static void check_bip32_path(const std::vector<uint32_t> &path) {
     bool curr_hardened = is_hardened(component);
     bool curr_non_hardened = !curr_hardened;
     if (curr_hardened && found_non_hardened) {
-      throw HWITapsigerException(HWITapsigerException::MALFORMED_BIP32_PATH,
-                                 "Hardened path component after non-hardened");
+      throw TapProtoException(TapProtoException::MALFORMED_BIP32_PATH,
+                              "Hardened path component after non-hardened");
     }
     found_non_hardened = curr_non_hardened;
   }
@@ -162,8 +161,8 @@ static PartiallySignedTransaction DecodePsbt(const std::string &base64_psbt) {
   PartiallySignedTransaction psbtx;
   std::string error;
   if (!DecodeBase64PSBT(psbtx, base64_psbt, error)) {
-    throw HWITapsigerException(HWITapsigerException::PSBT_PARSE_ERROR,
-                               "Parse psbt error " + error);
+    throw TapProtoException(TapProtoException::PSBT_PARSE_ERROR,
+                            "Parse psbt error " + error);
   }
   return psbtx;
 }
@@ -222,8 +221,8 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
     }
     if (psbt_in.non_witness_utxo && !psbt_in.non_witness_utxo->IsNull()) {
       if (txin.prevout.hash != psbt_in.non_witness_utxo->GetHash()) {
-        throw HWITapsigerException(
-            HWITapsigerException::PSBT_INVALID,
+        throw TapProtoException(
+            TapProtoException::PSBT_INVALID,
             "Input has a non_witness_utxo with the wrong hash");
       }
       utxo = psbt_in.non_witness_utxo->vout[txin.prevout.n];
@@ -263,8 +262,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
       txin.scriptSig.clear();
     } else {
       if (psbt_in.witness_utxo.IsNull()) {
-        throw HWITapsigerException(HWITapsigerException::PSBT_INVALID,
-                                   "Psbt error");
+        throw TapProtoException(TapProtoException::PSBT_INVALID, "Psbt error");
       }
       CDataStream prevouts_preimage(SER_NETWORK, PROTOCOL_VERSION);
       CDataStream sequence_preimage(SER_NETWORK, PROTOCOL_VERSION);
@@ -395,8 +393,8 @@ std::string HWITapsignerImpl::SignMessage(const std::string &message,
     rec_sig = device_->Sign(md, cvc_, 0);
   } else {
     if (non_hardened.size() > 2) {
-      throw HWITapsigerException(
-          HWITapsigerException::INVALID_PATH_LENGTH,
+      throw TapProtoException(
+          TapProtoException::INVALID_PATH_LENGTH,
           "Only 2 non-hardened derivation components allowed");
     }
     device_->Derive(Path2Str(hardened), cvc_);
@@ -442,6 +440,9 @@ void HWITapsignerImpl::GetCVC(const std::string &message) {
   if (opt_cvc) {
     cvc_ = *opt_cvc;
   }
+  // for (int i = 0; i < device_->GetAuthDelay(); ++i) {
+  //   device_->Wait();
+  // }
 }
 
 HWITapsignerImpl::HWITapsignerImpl(Tapsigner *device,
