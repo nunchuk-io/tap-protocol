@@ -25,7 +25,6 @@ set(${PROJECT_NAME}_SOURCES
         src/secp256k1_utils.cpp
         src/cktapcard.cpp
         src/transport.cpp
-        src/tap_protocol.cpp 
         src/secp256k1_utils.cpp
         src/hash_utils.cpp
         src/hwi_tapsigner.cpp

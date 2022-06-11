@@ -53,9 +53,11 @@ class TapProtoException : public std::exception {
   static constexpr int INVALID_ADDRESS_TYPE = 624;
 
  public:
-  TapProtoException(int code, std::string message);
-  const char *what() const noexcept override;
-  int code() const noexcept;
+  explicit TapProtoException(int code, std::string message)
+      : code_(code), message_(std::move(message)) {}
+  const char *what() const noexcept override { return message_.c_str(); }
+  int code() const noexcept { return code_; }
+  ~TapProtoException() = default;
 
  private:
   std::string message_;
