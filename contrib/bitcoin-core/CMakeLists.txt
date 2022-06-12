@@ -5,6 +5,11 @@ project(bitcoin-core LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Fix conflict secp256k1 when build with bitcoin-core
+option(USE_EXTERNAL_SECP256K1 "Use external secp256k1 library" OFF)
+option(EXTERNAL_SECP256K1_LIBRARY "External secp256k1 library path" "")
+option(EXTERNAL_SECP256K1_INCLUDE "External secp256k1 include path" "")
+
 add_library(${PROJECT_NAME} STATIC
         src/amount.h
         src/streams.h
@@ -76,20 +81,26 @@ add_library(${PROJECT_NAME} STATIC
 
         )
 
-if (ANDROID)
-  add_library(libsecp256k1 STATIC IMPORTED)
-  set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/android/${ANDROID_ABI}/lib/libsecp256k1.a)
-  set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
-elseif(IOS)
-  add_library(libsecp256k1 STATIC IMPORTED)
-  set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/iphoneos/libsecp256k1.a)
-  set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
-elseif(WIN32)
-  message(FATAL_ERROR "Not support yet!")
+if (NOT ${USE_EXTERNAL_SECP256K1})
+  if (ANDROID)
+    add_library(libsecp256k1 STATIC IMPORTED)
+    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/android/${ANDROID_ABI}/lib/libsecp256k1.a)
+    set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
+  elseif(IOS)
+    add_library(libsecp256k1 STATIC IMPORTED)
+    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/iphoneos/libsecp256k1.a)
+    set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
+  elseif(WIN32)
+    message(FATAL_ERROR "Not support yet!")
+  else()
+    add_library(libsecp256k1 STATIC IMPORTED)
+    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/.libs/libsecp256k1.a)
+    set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
+  endif()
 else()
-  add_library(libsecp256k1 STATIC IMPORTED)
-  set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/.libs/libsecp256k1.a)
-  set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
+    add_library(libsecp256k1 STATIC IMPORTED)
+    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${EXTERNAL_SECP256K1_LIBRARY})
+    set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${EXTERNAL_SECP256K1_INCLUDE})
 endif()
 
 target_include_directories(${PROJECT_NAME}

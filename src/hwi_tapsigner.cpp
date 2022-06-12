@@ -175,8 +175,6 @@ static std::string EncodePsbt(const PartiallySignedTransaction &psbtx) {
 
 CExtPubKey HWITapsignerImpl::GetPubkeyAtPath(
     const std::string &derivation_path) {
-  GetCVC();
-
   auto int_path = Str2Path(derivation_path);
   check_bip32_path(int_path);
   auto [hardened, non_hardened] = split_bip32_path(int_path);
@@ -203,11 +201,10 @@ void HWITapsignerImpl::SetPromptCVCCallback(PromptCVCCallback func) {
 }
 
 std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
+  GetCVC();
   auto tx = DecodePsbt(base64_psbt);
   auto &blank_tx = get_unsigned_tx(tx);
   Bytes master_fp = GetMasterFingerprintBytes();
-
-  GetCVC();
 
   using SigHashTuple = std::tuple<Bytes, std::vector<uint32_t>, int, CPubKey>;
   std::vector<SigHashTuple> sighash_tuples;
@@ -338,6 +335,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
 
 std::string HWITapsignerImpl::GetXpubAtPath(
     const std::string &derivation_path) {
+  GetCVC();
   auto pubkey = GetPubkeyAtPath(derivation_path);
   CDataStream packed(SER_NETWORK, PROTOCOL_VERSION);
 
@@ -360,11 +358,13 @@ Bytes HWITapsignerImpl::GetMasterFingerprintBytes() {
   return {std::begin(hashed), std::begin(hashed) + 4};
 }
 std::string HWITapsignerImpl::GetMasterFingerprint() {
+  GetCVC();
   return Bytes2Str(GetMasterFingerprintBytes());
 }
 
 std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,
                                             int account) {
+  GetCVC();
   int bip44_pupose = get_bip44_purpose(address_type);
   int bip44_chain = chain_;
   std::ostringstream path;

@@ -274,7 +274,13 @@ std::string Tapsigner::GetDerivation() {
 
 Tapsigner::DeriveResponse Tapsigner::Derive(const std::string& path,
                                             const std::string& cvc) {
+  static constexpr int DERIVE_MAX_BIP32_PATH_DEPTH = 8;
   const std::vector<uint32_t> path_value = Str2Path(path);
+
+  if (path_value.size() > DERIVE_MAX_BIP32_PATH_DEPTH) {
+    throw TapProtoException(TapProtoException::INVALID_PATH_LENGTH,
+                            "No more than 8 path components allowed.");
+  }
 
   const json request = {
       {"cmd", "derive"},
