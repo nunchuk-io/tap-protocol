@@ -79,7 +79,7 @@ json TransportImpl::Send(const json &msg) {
     if (response.size() > 2) {
       response.resize(response.size() - 2);
     }
-    return json::from_cbor(response);
+    return json::from_cbor(response, false);
   } catch (json::exception &ex) {
     throw TapProtoException(TapProtoException::SERIALIZE_ERROR, ex.what());
   }
