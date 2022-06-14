@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -11,6 +12,7 @@
 #include <base58.h>
 #include <pubkey.h>
 #include <span.h>
+#include <crypto/aes.h>
 #include "tap_protocol/hash_utils.h"
 #include "tap_protocol/hwi_tapsigner.h"
 #include "tap_protocol/utils.h"
@@ -171,6 +173,38 @@ static std::string EncodePsbt(const PartiallySignedTransaction &psbtx) {
   CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
   ssTx << psbtx;
   return EncodeBase64(MakeUCharSpan(ssTx));
+}
+
+static constexpr int AES_BLOCK_SIZE = 16;
+static Bytes AES128CTRDecrypt(const Bytes &cipher, const Bytes &key,
+                              Bytes counter = Bytes(AES_BLOCK_SIZE, 0)) {
+  auto increment_counter = [&]() {
+    for (int i = AES_BLOCK_SIZE - 1; i > 0; --i) {
+      if (++counter[i]) {
+        break;
+      }
+    }
+  };
+
+  AES128_ctx ctx;
+  AES128_init(&ctx, key.data());
+
+  Bytes plain = cipher;
+  auto pos = plain.data();
+
+  size_t left = cipher.size();
+  unsigned char buf[AES_BLOCK_SIZE];
+  while (left > 0) {
+    AES128_encrypt(&ctx, 1, buf, counter.data());
+    const size_t len = (left < AES_BLOCK_SIZE) ? left : AES_BLOCK_SIZE;
+    for (int j = 0; j < len; j++) {
+      pos[j] ^= buf[j];
+    }
+    pos += len;
+    left -= len;
+    increment_counter();
+  }
+  return plain;
 }
 
 CExtPubKey HWITapsignerImpl::GetPubkeyAtPath(
@@ -435,8 +469,26 @@ Bytes HWITapsignerImpl::BackupDevice() {
   return resp.data;
 }
 
-// TODO: implement
-bool HWITapsignerImpl::RestoreDevice() { return false; }
+Bytes HWITapsignerImpl::DecryptBackup(const Bytes &encrypted_data,
+                                      const std::string &backup_key) {
+  static const std::string xpriv = "xprv";
+  static const std::string tpriv = "tprv";
+  static const Bytes PREFIXS[] = {
+      {std::begin(xpriv), std::end(xpriv)},
+      {std::begin(tpriv), std::end(tpriv)},
+  };
+
+  auto backup_key_bytes = ParseHex(backup_key);
+  Bytes decrypted = AES128CTRDecrypt(encrypted_data, backup_key_bytes);
+  for (const auto &prefix : PREFIXS) {
+    if (std::equal(std::begin(prefix), std::end(prefix),
+                   std::begin(decrypted))) {
+      return decrypted;
+    }
+  }
+  throw TapProtoException(TapProtoException::INVALID_BACKUP_KEY,
+                          "Invalid backup key");
+}
 
 void HWITapsignerImpl::GetCVC(const std::string &message) {
   auto opt_cvc = cvc_callback_(message);

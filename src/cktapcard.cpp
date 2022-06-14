@@ -72,6 +72,10 @@ json CKTapCard::Send(const json& msg) {
     card_nonce_ = resp["card_nonce"];
   }
 
+  if (resp.contains("auth_delay")) {
+    auth_delay_ = resp["auth_delay"];
+  }
+
   if (resp.contains("error")) {
     throw TapProtoException(
         resp.value("code", TapProtoException::DEFAULT_ERROR), resp["error"]);

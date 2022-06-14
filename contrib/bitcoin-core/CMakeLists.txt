@@ -79,8 +79,9 @@ add_library(${PROJECT_NAME} STATIC
         src/base58.h
         src/base58.cpp
 
+        src/crypto/aes.h
+        src/crypto/aes.cpp
         )
-
 if (NOT ${USE_EXTERNAL_SECP256K1})
   if (ANDROID)
     add_library(libsecp256k1 STATIC IMPORTED)

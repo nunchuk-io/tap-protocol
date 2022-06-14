@@ -10,6 +10,7 @@ namespace tap_protocol {
 static constexpr int64_t HARDENED = 0x80000000;
 
 std::string Bytes2Str(const Bytes &msg);
+Bytes Hex2Bytes(const std::string &hex);
 std::string ToUpper(std::string str);
 
 Bytes XORBytes(const Bytes &a, const Bytes &b);

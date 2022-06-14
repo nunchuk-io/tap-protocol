@@ -51,6 +51,7 @@ class TapProtoException : public std::exception {
   static constexpr int PSBT_PARSE_ERROR = 622;
   static constexpr int PSBT_INVALID = 623;
   static constexpr int INVALID_ADDRESS_TYPE = 624;
+  static constexpr int INVALID_BACKUP_KEY = 625;
 
  public:
   explicit TapProtoException(int code, std::string message)

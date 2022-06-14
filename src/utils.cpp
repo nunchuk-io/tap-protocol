@@ -6,6 +6,7 @@
 #include <vector>
 #include "tap_protocol/utils.h"
 #include "tap_protocol/hash_utils.h"
+#include "util/strencodings.h"
 
 namespace tap_protocol {
 
@@ -20,6 +21,10 @@ std::string Bytes2Str(const Bytes &msg) {
   }
   assert(it == rv.end());
   return rv;
+}
+
+Bytes Hex2Bytes(const std::string &hex) {
+  return ParseHex(hex);
 }
 
 std::string ToUpper(std::string str) {
@@ -134,8 +139,7 @@ std::vector<uint32_t> Str2Path(std::string path) {
 using random_bytes_engine =
     std::independent_bits_engine<std::default_random_engine, CHAR_BIT,
                                  unsigned char>;
-static std::mt19937 mt{std::random_device{}()};
-static random_bytes_engine rbe(mt());
+static random_bytes_engine rbe(std::random_device{}());
 
 Bytes RandomBytes(size_t size) {
   Bytes result(size);

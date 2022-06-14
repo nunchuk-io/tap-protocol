@@ -1,7 +1,7 @@
-#include <netdb.h>
 #include "doctest.h"
 #include "emulator.h"
 #include "tap_protocol/hash_utils.h"
+#include "tap_protocol/tap_protocol.h"
 #include "tap_protocol/utils.h"
 #include "tap_protocol/hwi_tapsigner.h"
 #include <fstream>
@@ -114,4 +114,34 @@ TEST_CASE("get xpub at path") {
     MESSAGE("path m/44h: ", res);
     CHECK(!res.empty());
   }
+}
+
+TEST_CASE("decrypt backup") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+
+  std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
+      std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
+
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
+
+  auto encrypted = tap_protocol::Hex2Bytes(
+      "f5a6bfb5854c9cf53ffbd2ebd0c028b9761f9a5b393cc65c859e7171db2d11b1940918d4"
+      "3a3788c2a2b7b3aa95ec1b743cef462f39ac8d36d1707ee1c80663e528018484e8838127"
+      "2b064efc31ad11b5c7c15c7835ef2f8eaf1db2cbf2bbf03465055997574a196fbdcd4055"
+      "bb06731447eb9513a306");
+
+  std::string backup_key = "41414141414141414141414141414141";
+
+  auto decrypted =
+      hwi->DecryptBackup({std::begin(encrypted), std::end(encrypted)},
+                         {std::begin(backup_key), std::end(backup_key)});
+  std::string decrypted_str(std::begin(decrypted), std::end(decrypted));
+  std::string expected =
+      "tprv8ZgxMBicQKsPctUGYBjd5XBMn4TzcyFiuccf88VtCKaFUZend1nCDkmqPsNmhjMMehX7"
+      "5AdbvPzqkQEF2S2zjGvjnCGT8g13WBmaL3nm7op\nm/44h\n";
+
+  // MESSAGE("decrypted: ", decrypted_str);
+  CHECK(decrypted_str == expected);
 }
