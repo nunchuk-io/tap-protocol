@@ -304,7 +304,7 @@ std::string Tapsigner::GetXFP(const std::string& cvc) {
 
   Bytes xpub_hash = Hash160(xpub);
   xpub_hash.resize(4);
-  return ToUpper(Bytes2Str(xpub_hash));
+  return ToUpper(Bytes2Hex(xpub_hash));
 }
 
 std::string Tapsigner::Xpub(const std::string& cvc, bool master) {
@@ -356,7 +356,7 @@ std::string Tapsigner::Pubkey(const std::string& cvc) {
       SendAuth({{"cmd", "read"}, {"nonce", json::binary_t(nonce)}},
                {std::begin(cvc), std::end(cvc)});
   const auto ret = recover_pubkey(status, read, nonce, session_key);
-  return Bytes2Str(ret);
+  return Bytes2Hex(ret);
 }
 
 Tapsigner::ChangeResponse Tapsigner::Change(const std::string& new_cvc,

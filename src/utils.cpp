@@ -10,22 +10,9 @@
 
 namespace tap_protocol {
 
-std::string Bytes2Str(const Bytes &msg) {
-  std::string rv(msg.size() * 2, '\0');
-  static constexpr char hexmap[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                                      '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-  auto it = rv.begin();
-  for (auto v : msg) {
-    *it++ = hexmap[v >> 4];
-    *it++ = hexmap[v & 15];
-  }
-  assert(it == rv.end());
-  return rv;
-}
+std::string Bytes2Hex(const Bytes &msg) { return HexStr(msg); }
 
-Bytes Hex2Bytes(const std::string &hex) {
-  return ParseHex(hex);
-}
+Bytes Hex2Bytes(const std::string &hex) { return ParseHex(hex); }
 
 std::string ToUpper(std::string str) {
   std::transform(std::begin(str), std::end(str), std::begin(str),

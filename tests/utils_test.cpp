@@ -157,7 +157,7 @@ TEST_CASE("backup then change cvc") {
   json backupResp = tapSigner.Backup("123456");
   MESSAGE("backup:", backupResp.dump(2));
   MESSAGE("backup data:",
-          tap_protocol::Bytes2Str(backupResp["data"].get<json::binary_t>()));
+          tap_protocol::Bytes2Hex(backupResp["data"].get<json::binary_t>()));
   CHECK(!backupResp["data"].get<json::binary_t>().empty());
 
   json changeResp = tapSigner.Change("654321", "123456");
@@ -191,6 +191,6 @@ TEST_CASE("sign digest") {
   tap_protocol::Bytes resp =
       tapSigner.Sign({std::begin(digest), std::end(digest)}, "123456");
   CHECK(!resp.empty());
-  MESSAGE("digest:", tap_protocol::Bytes2Str(digest));
-  MESSAGE("signed digest:", tap_protocol::Bytes2Str(resp));
+  MESSAGE("digest:", tap_protocol::Bytes2Hex(digest));
+  MESSAGE("signed digest:", tap_protocol::Bytes2Hex(resp));
 }

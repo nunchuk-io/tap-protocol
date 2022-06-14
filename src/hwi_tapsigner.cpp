@@ -393,7 +393,7 @@ Bytes HWITapsignerImpl::GetMasterFingerprintBytes() {
 }
 std::string HWITapsignerImpl::GetMasterFingerprint() {
   GetCVC();
-  return Bytes2Str(GetMasterFingerprintBytes());
+  return Bytes2Hex(GetMasterFingerprintBytes());
 }
 
 std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,
