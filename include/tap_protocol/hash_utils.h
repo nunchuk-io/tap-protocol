@@ -5,7 +5,7 @@
 
 namespace tap_protocol {
 
-Bytes SHA256(const Bytes &msg);
+Bytes SHA256(const Bytes &data);
 Bytes SHA256d(const Bytes &data);
 Bytes Hash160(const Bytes &data);
 

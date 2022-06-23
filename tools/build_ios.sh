@@ -7,6 +7,10 @@ pushd contrib/bitcoin-core/src/secp256k1
 ./autogen.sh
 
 BUILD_DIR="$(pwd)/build"
+num_jobs=4
+if [ -f /proc/cpuinfo ]; then
+  num_jobs=$(grep ^processor /proc/cpuinfo | wc -l)
+fi
 
 build() {
   SDK_NAME=$1 # iphonesimulator, iphoneos
@@ -20,11 +24,6 @@ build() {
     CPP="$CC $EXTRA_CFLAGS -E" \
     CC_FOR_BUILD="$CC_FOR_BUILD" \
     CPP_FOR_BUILD="$CC_FOR_BUILD -E" \
-
-  local num_jobs=4
-  if [ -f /proc/cpuinfo ]; then
-      num_jobs=$(grep ^processor /proc/cpuinfo | wc -l)
-  fi
 
   make clean
   make -j $num_jobs
@@ -76,4 +75,4 @@ popd
 mkdir build
 cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake -DPLATFORM=OS64
-make all
+make all -j $num_jobs

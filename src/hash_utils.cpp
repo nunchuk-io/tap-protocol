@@ -4,11 +4,11 @@
 
 namespace tap_protocol {
 
-static constexpr int SHA256_LEN_ = 32;
-static constexpr int HASH160_LEN_ = 20;
+static constexpr int SHA256_LEN = 32;
+static constexpr int HASH160_LEN = 20;
 
 Bytes SHA256(const Bytes &data) {
-  Bytes result(SHA256_LEN_);
+  Bytes result(SHA256_LEN);
   CSHA256 hasher;
   hasher.Write(data.data(), data.size());
   hasher.Finalize(result.data());
@@ -16,7 +16,7 @@ Bytes SHA256(const Bytes &data) {
 }
 
 Bytes SHA256d(const Bytes &data) {
-  Bytes result(SHA256_LEN_);
+  Bytes result(SHA256_LEN);
   CHash256 hasher;
   hasher.Write(data);
   hasher.Finalize(result);
@@ -24,7 +24,7 @@ Bytes SHA256d(const Bytes &data) {
 }
 
 Bytes Hash160(const Bytes &data) {
-  Bytes result(HASH160_LEN_);
+  Bytes result(HASH160_LEN);
   CHash160 hasher;
   hasher.Write(data);
   hasher.Finalize(result);

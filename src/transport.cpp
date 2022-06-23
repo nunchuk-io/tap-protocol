@@ -10,70 +10,71 @@ static constexpr unsigned char CLA = 0x00;
 static constexpr unsigned char INS = 0xcb;
 static constexpr unsigned char P1 = 0x0;
 static constexpr unsigned char P2 = 0x0;
-static const Bytes APP_ID = {
+static constexpr std::array<unsigned char, 15> APP_ID = {
     0xf0, 0x43, 0x6f, 0x69, 0x6e, 0x6b, 0x69, 0x74,
     0x65, 0x43, 0x41, 0x52, 0x44, 0x76, 0x31,
 };
 
-namespace detail {
-static std::vector<char> SizeToLC(size_t size) {
+static Bytes SizeToLC(size_t size) {
   if (size < 256) {
-    return {static_cast<char>(size)};
+    return {static_cast<unsigned char>(size)};
   }
-  return {static_cast<char>((size & 0xff00) >> 8),
-          static_cast<char>((size & 0xff))};
+  return {static_cast<unsigned char>((size & 0xff00) >> 8),
+          static_cast<unsigned char>((size & 0xff))};
 }
 
-static Bytes MakeAPDURequest(const Bytes &msg, char cla = CLA, char ins = INS,
-                             char p1 = P1, char p2 = P2) {
+static Bytes MakeAPDURequest(const Bytes &msg, unsigned char cla = CLA,
+                             unsigned char ins = INS, unsigned char p1 = P1,
+                             unsigned char p2 = P2) {
   if (msg.size() > 255) {
     throw TapProtoException(TapProtoException::MESSAGE_TOO_LONG,
                             "Message too long");
   }
-  auto lc = detail::SizeToLC(msg.size());
+  const auto lc = SizeToLC(msg.size());
 
-  Bytes result;
-  result.push_back(cla);
-  result.push_back(ins);
-  result.push_back(p1);
-  result.push_back(p2);
-  result.insert(end(result), begin(lc), end(lc));
-  result.insert(end(result), begin(msg), end(msg));
-  return result;
+  Bytes apdu;
+  apdu.reserve(4 + lc.size() + msg.size());
+  apdu.push_back(cla);
+  apdu.push_back(ins);
+  apdu.push_back(p1);
+  apdu.push_back(p2);
+  apdu.insert(end(apdu), begin(lc), end(lc));
+  apdu.insert(end(apdu), begin(msg), end(msg));
+  return apdu;
 }
 
 static bool IsSWOk(const Bytes &bytes) {
   if (bytes.size() < 2) {
     return false;
   }
-  auto [sw2, sw1] = std::tie(*rbegin(bytes), *std::next(rbegin(bytes)));
+  const auto [sw2, sw1] = std::tie(*rbegin(bytes), *std::next(rbegin(bytes)));
 
   if (sw1 != SW_OKAY_1 || sw2 != SW_OKAY_2) {
     return false;
   }
   return true;
 }
-}  // namespace detail
 
 TransportImpl::TransportImpl(SendReceiveFunction send_receive_func)
     : send_receive_func_(std::move(send_receive_func)) {
-  ISOAppSelect();
+  ISOSelect();
 }
 
-void TransportImpl::ISOAppSelect() {
-  const auto request = detail::MakeAPDURequest(APP_ID, 0x00, 0xa4, 0x4);
+void TransportImpl::ISOSelect() {
+  const auto request =
+      MakeAPDURequest({std::begin(APP_ID), std::end(APP_ID)}, 0x00, 0xa4, 0x4);
   Bytes response = send_receive_func_(request);
-  if (!detail::IsSWOk(response)) {
-    throw TapProtoException(TapProtoException::ISO_APP_SELECT_FAILED,
-                            "ISO app select failed");
+  if (!IsSWOk(response)) {
+    throw TapProtoException(TapProtoException::ISO_SELECT_FAIL,
+                            "ISO select failed");
   }
 }
 
 json TransportImpl::Send(const json &msg) {
   try {
-    const auto request = detail::MakeAPDURequest(json::to_cbor(msg));
+    const auto request = MakeAPDURequest(json::to_cbor(msg));
     Bytes response = send_receive_func_(request);
-    if (!detail::IsSWOk(response)) {
+    if (!IsSWOk(response)) {
       throw TapProtoException(TapProtoException::SW_FAIL, "SW failed");
     }
     if (response.size() > 2) {
@@ -86,7 +87,7 @@ json TransportImpl::Send(const json &msg) {
 }
 
 std::unique_ptr<Transport> MakeDefaultTransport(SendReceiveFunction func) {
-  return std::make_unique<TransportImpl>(func);
+  return std::make_unique<TransportImpl>(std::move(func));
 }
 
 std::unique_ptr<Transport> MakeDefaultTransportIOS(

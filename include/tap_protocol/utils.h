@@ -7,7 +7,7 @@
 
 namespace tap_protocol {
 
-static constexpr int64_t HARDENED = 0x80000000;
+static constexpr uint32_t HARDENED = 0x80000000;
 
 std::string Bytes2Hex(const Bytes &msg);
 Bytes Hex2Bytes(const std::string &hex);
@@ -28,7 +28,7 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
               const nlohmann::json::binary_t &his_pubkey, const Bytes &cvc);
 
 std::string Path2Str(const std::vector<uint32_t> &path);
-std::vector<uint32_t> Str2Path(std::string path);
+std::vector<uint32_t> Str2Path(const std::string &path);
 
 Bytes RandomBytes(size_t size);
 Bytes PickNonce();

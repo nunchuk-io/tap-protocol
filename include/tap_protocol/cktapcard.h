@@ -41,6 +41,13 @@ class CKTapCard {
     friend void from_json(const nlohmann::json& j, NewResponse& t);
   };
 
+  struct WaitResponse {
+    bool success{};
+    int auth_delay{};
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(WaitResponse, success, auth_delay);
+  };
+
   nlohmann::json Send(const nlohmann::json& msg);
   std::pair<Bytes, nlohmann::json> SendAuth(const nlohmann::json& msg,
                                             const Bytes& cvc = {});
@@ -54,6 +61,7 @@ class CKTapCard {
   StatusResponse Status();
   std::string NFC();
   std::string CertificateCheck();
+  WaitResponse Wait();
   virtual NewResponse New(const Bytes& chain_code, const std::string& cvc,
                           int slot = 0) = 0;
   virtual Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
@@ -107,13 +115,6 @@ class Tapsigner : public CKTapCard {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(BackupResponse, data, card_nonce);
   };
 
-  struct WaitResponse {
-    bool success{};
-    int auth_delay{};
-
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(WaitResponse, success, auth_delay);
-  };
-
   DeriveResponse Derive(const std::string& path, const std::string& cvc);
   std::string GetXFP(const std::string& cvc);
   std::string Xpub(const std::string& cvc, bool master);
@@ -125,7 +126,6 @@ class Tapsigner : public CKTapCard {
                   int slot = 0) override;
   Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
              const std::string& subpath = {}) override;
-  WaitResponse Wait();
 
   int GetNumberOfBackups() const noexcept;
   std::optional<std::string> GetInitDerivation() const noexcept;

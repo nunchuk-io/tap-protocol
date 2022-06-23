@@ -81,8 +81,8 @@ class HWITapsignerImpl : public HWITapsigner {
 
  private:
   Chain chain_ = MAIN;
-  PromptCVCCallback cvc_callback_;
   Tapsigner *device_;
+  PromptCVCCallback cvc_callback_;
   std::string cvc_;
 };
 

@@ -29,7 +29,7 @@ class TapProtoException : public std::exception {
   static constexpr int DEFAULT_ERROR = 500;
   static constexpr int MESSAGE_TOO_LONG = 601;
   static constexpr int MISSING_KEY = 602;
-  static constexpr int ISO_APP_SELECT_FAILED = 603;
+  static constexpr int ISO_SELECT_FAIL = 603;
   static constexpr int SW_FAIL = 604;
   static constexpr int INVALID_CVC_LENGTH = 605;
   static constexpr int PICK_KEY_PAIR_FAIL = 606;
@@ -52,6 +52,7 @@ class TapProtoException : public std::exception {
   static constexpr int PSBT_INVALID = 623;
   static constexpr int INVALID_ADDRESS_TYPE = 624;
   static constexpr int INVALID_BACKUP_KEY = 625;
+  static constexpr int INVALID_PUBKEY = 626;
 
  public:
   explicit TapProtoException(int code, std::string message)
@@ -61,8 +62,8 @@ class TapProtoException : public std::exception {
   ~TapProtoException() = default;
 
  private:
-  std::string message_;
   int code_;
+  std::string message_;
 };
 
 }  // namespace tap_protocol

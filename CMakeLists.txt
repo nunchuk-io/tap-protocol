@@ -53,12 +53,17 @@ target_include_directories(${PROJECT_NAME}
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE TAPPROTOCOL_LIBRARY)
 
+target_compile_options(${PROJECT_NAME} PRIVATE 
+       $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
+       $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
+       )
+
 target_precompile_headers(${PROJECT_NAME}
         PRIVATE ${PROJECT_SOURCE_DIR}/contrib/include/nlohmann/json.hpp)
 
-#set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-#set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-#include(CPack)
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+include(CPack)
 
 if (BUILD_TESTING)
     find_package(Boost 1.47.0 REQUIRED system)

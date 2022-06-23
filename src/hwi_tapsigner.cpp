@@ -15,6 +15,7 @@
 #include <crypto/aes.h>
 #include "tap_protocol/hash_utils.h"
 #include "tap_protocol/hwi_tapsigner.h"
+#include "tap_protocol/tap_protocol.h"
 #include "tap_protocol/utils.h"
 
 namespace tap_protocol {
@@ -23,29 +24,35 @@ using uchar = unsigned char;
 // Require to call CPubKey::IsFullyValid() when parse psbt
 static const ECCVerifyHandle verify_handle;
 
-static const std::vector<unsigned char> BASE58_PREFIX_PUBKEY[] = {
-    {0x04, 0x88, 0xB2, 0x1E},  // MAIN
-    {0x04, 0x35, 0x87, 0xCF},  // TEST, SIG
-};
+static constexpr std::array<std::array<unsigned char, 4>, 2>
+    BASE58_PREFIX_PUBKEY = {{
+        {0x04, 0x88, 0xB2, 0x1E},  // MAIN
+        {0x04, 0x35, 0x87, 0xCF},  // TEST, SIG
+    }};
 
 static CExtPubKey DecodeExtPubKey(HWITapsigner::Chain type,
                                   const std::string &str) {
   CExtPubKey key;
   std::vector<unsigned char> data;
   if (DecodeBase58Check(str, data, 78)) {
-    const std::vector<unsigned char> &prefix = BASE58_PREFIX_PUBKEY[type];
+    const auto &prefix = BASE58_PREFIX_PUBKEY[type];
     if (data.size() == BIP32_EXTKEY_SIZE + prefix.size() &&
         std::equal(prefix.begin(), prefix.end(), data.begin())) {
       key.Decode(data.data() + prefix.size());
+      return key;
     }
+    throw TapProtoException(TapProtoException::INVALID_PUBKEY,
+                            "Invalid pubkey prefix");
   }
-  return key;
+  throw TapProtoException(TapProtoException::INVALID_PUBKEY,
+                          "Invalid pubkey decode base58");
 }
 
 static std::string EncodeExtPubKey(HWITapsigner::Chain type,
                                    const CExtPubKey &key) {
-  std::vector<unsigned char> data = BASE58_PREFIX_PUBKEY[type];
-  size_t size = data.size();
+  Bytes data{std::begin(BASE58_PREFIX_PUBKEY[type]),
+             std::end(BASE58_PREFIX_PUBKEY[type])};
+  const size_t size = data.size();
   data.resize(size + BIP32_EXTKEY_SIZE);
   key.Encode(data.data() + size);
   std::string ret = EncodeBase58Check(data);
@@ -190,13 +197,13 @@ static Bytes AES128CTRDecrypt(const Bytes &cipher, const Bytes &key,
   AES128_init(&ctx, key.data());
 
   Bytes plain = cipher;
-  auto pos = plain.data();
+  auto *pos = plain.data();
 
-  size_t left = cipher.size();
+  int left = cipher.size();
   unsigned char buf[AES_BLOCK_SIZE];
   while (left > 0) {
     AES128_encrypt(&ctx, 1, buf, counter.data());
-    const size_t len = (left < AES_BLOCK_SIZE) ? left : AES_BLOCK_SIZE;
+    const int len = (left < AES_BLOCK_SIZE) ? left : AES_BLOCK_SIZE;
     for (int j = 0; j < len; j++) {
       pos[j] ^= buf[j];
     }
@@ -217,17 +224,17 @@ CExtPubKey HWITapsignerImpl::GetPubkeyAtPath(
     device_->Derive(derivation_path, cvc_);
     auto xp = device_->Xpub(cvc_, false);
     return DecodeExtPubKey(chain_, xp);
-  } else {
-    auto str_path = Path2Str(hardened);
-    device_->Derive(str_path, cvc_);
-    auto xp = device_->Xpub(cvc_, false);
-    auto pub = DecodeExtPubKey(chain_, xp);
-    for (int path : non_hardened) {
-      pub.Derive(pub, path);
-    }
-
-    return pub;
   }
+
+  auto str_path = Path2Str(hardened);
+  device_->Derive(str_path, cvc_);
+  auto xp = device_->Xpub(cvc_, false);
+  auto pub = DecodeExtPubKey(chain_, xp);
+  for (uint32_t path : non_hardened) {
+    pub.Derive(pub, path);
+  }
+
+  return pub;
 }
 
 void HWITapsignerImpl::SetPromptCVCCallback(PromptCVCCallback func) {
@@ -243,7 +250,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
   using SigHashTuple = std::tuple<Bytes, std::vector<uint32_t>, int, CPubKey>;
   std::vector<SigHashTuple> sighash_tuples;
 
-  for (int i = 0; i < blank_tx.vin.size(); ++i) {
+  for (size_t i = 0; i < blank_tx.vin.size(); ++i) {
     auto &txin = blank_tx.vin[i];
     auto &psbt_in = tx.inputs[i];
     CTxOut utxo;
@@ -270,7 +277,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
       scriptcode = psbt_in.redeem_script;
       p2sh = true;
     }
-    const auto [is_wit, _, __] = is_p2wpkh(scriptcode);
+    const auto [is_wit, _ver, _prog] = is_p2wpkh(scriptcode);
     if (scriptcode.IsPayToWitnessScriptHash()) {
       if (psbt_in.witness_script.empty()) {
         continue;
@@ -471,16 +478,12 @@ Bytes HWITapsignerImpl::BackupDevice() {
 
 Bytes HWITapsignerImpl::DecryptBackup(const Bytes &encrypted_data,
                                       const std::string &backup_key) {
-  static const std::string xpriv = "xprv";
-  static const std::string tpriv = "tprv";
-  static const Bytes PREFIXS[] = {
-      {std::begin(xpriv), std::end(xpriv)},
-      {std::begin(tpriv), std::end(tpriv)},
-  };
+  static constexpr std::array<std::array<char, 4>, 2> PREFIXES = {
+      {{'x', 'p', 'r', 'v'}, {'t', 'p', 'r', 'v'}}};
 
-  auto backup_key_bytes = ParseHex(backup_key);
+  const auto backup_key_bytes = ParseHex(backup_key);
   Bytes decrypted = AES128CTRDecrypt(encrypted_data, backup_key_bytes);
-  for (const auto &prefix : PREFIXS) {
+  for (const auto &prefix : PREFIXES) {
     if (std::equal(std::begin(prefix), std::end(prefix),
                    std::begin(decrypted))) {
       return decrypted;
@@ -521,6 +524,6 @@ std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
 
 std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
                                                PromptCVCCallback cvc_callback) {
-  return std::make_unique<HWITapsignerImpl>(device, cvc_callback);
+  return std::make_unique<HWITapsignerImpl>(device, std::move(cvc_callback));
 }
 }  // namespace tap_protocol

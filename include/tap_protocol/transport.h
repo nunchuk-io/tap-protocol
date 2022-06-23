@@ -22,7 +22,7 @@ class TransportImpl : public Transport {
   json Send(const json &msg) override;
 
  private:
-  void ISOAppSelect();
+  void ISOSelect();
   SendReceiveFunction send_receive_func_;
 };
 

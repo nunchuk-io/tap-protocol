@@ -42,10 +42,11 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
 
   Bytes session_key = CT_ecdh(his_pubkey, my_privkey);
 
-  Bytes to_be_hashed(card_nonce);
-  to_be_hashed.insert(std::end(to_be_hashed), std::begin(cmd), std::end(cmd));
+  Bytes card_nonce_hashed(card_nonce);
+  card_nonce_hashed.insert(std::end(card_nonce_hashed), std::begin(cmd),
+                           std::end(cmd));
 
-  const Bytes md = SHA256(to_be_hashed);
+  const Bytes md = SHA256(card_nonce_hashed);
   Bytes mask = XORBytes(session_key, md);
   mask.resize(cvc.size());
 
@@ -78,7 +79,7 @@ inline std::vector<std::string> split(const std::string &s, char delim) {
   return result;
 }
 
-std::vector<uint32_t> Str2Path(std::string path) {
+std::vector<uint32_t> Str2Path(const std::string &path) {
   auto path_component_in_range = [](uint32_t path) {
     return 0 <= path && path < HARDENED;
   };
@@ -126,7 +127,7 @@ std::vector<uint32_t> Str2Path(std::string path) {
 using random_bytes_engine =
     std::independent_bits_engine<std::default_random_engine, CHAR_BIT,
                                  unsigned char>;
-static random_bytes_engine rbe(std::random_device{}());
+static const random_bytes_engine rbe(std::random_device{}());
 
 Bytes RandomBytes(size_t size) {
   Bytes result(size);

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -15,7 +16,7 @@ static constexpr std::array<char, 8> opendime = {'O', 'P', 'E', 'N',
                                                  'D', 'I', 'M', 'E'};
 static constexpr int CARD_NONCE_SIZE = 16;
 static constexpr int USER_NONCE_SIZE = 16;
-static const Bytes FACTORY_ROOT_KEY = {
+static constexpr std::array<unsigned char, 33> FACTORY_ROOT_KEY = {
     0x03, 0x02, 0x8a, 0x0e, 0x89, 0xe7, 0x0d, 0x0e, 0xc0, 0xd9, 0x32,
     0x05, 0x3a, 0x89, 0xab, 0x1d, 0xa7, 0xd9, 0x18, 0x2b, 0xdc, 0x6d,
     0x2f, 0x03, 0xe7, 0x06, 0xee, 0x99, 0x51, 0x7d, 0x05, 0xd9, 0xe1,
@@ -67,7 +68,7 @@ CKTapCard::StatusResponse CKTapCard::FirstLook() {
 }
 
 json CKTapCard::Send(const json& msg) {
-  const auto resp = transport_->Send(msg);
+  auto resp = transport_->Send(msg);
   if (resp.contains("card_nonce")) {
     card_nonce_ = resp["card_nonce"];
   }
@@ -129,7 +130,7 @@ std::string CKTapCard::CertificateCheck() {
     msg.insert(std::end(msg), std::begin(card_nonce), std::end(card_nonce));
     msg.insert(std::end(msg), std::begin(my_nonce), std::end(my_nonce));
 
-    if (msg.size() != 8 + CARD_NONCE_SIZE + USER_NONCE_SIZE) {
+    if (msg.size() != opendime.size() + CARD_NONCE_SIZE + USER_NONCE_SIZE) {
       throw TapProtoException(TapProtoException::INVALID_CARD,
                               "Invalid msg size " + std::to_string(msg.size()));
     }
@@ -147,7 +148,8 @@ std::string CKTapCard::CertificateCheck() {
       pubkey = CT_sig_to_pubkey(SHA256(pubkey), sig);
     }
 
-    if (pubkey == FACTORY_ROOT_KEY) {
+    if (std::equal(std::begin(pubkey), std::end(pubkey),
+                   std::begin(FACTORY_ROOT_KEY), std::end(FACTORY_ROOT_KEY))) {
       return "Root Factory Certificate";
     }
 
@@ -165,6 +167,8 @@ std::string CKTapCard::CertificateCheck() {
 
   return verify_certs(st, check, certs, nonce);
 }
+
+CKTapCard::WaitResponse CKTapCard::Wait() { return Send({{"cmd", "wait"}}); }
 
 std::string CKTapCard::GetIdent() const noexcept {
   return {std::begin(card_ident_), std::end(card_ident_)};
@@ -470,7 +474,5 @@ Bytes Tapsigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
   throw TapProtoException(TapProtoException::EXCEEDED_RETRY,
                           "Failed to sign digest after 5 retries. Try again.");
 }
-
-Tapsigner::WaitResponse Tapsigner::Wait() { return Send({{"cmd", "wait"}}); }
 
 }  // namespace tap_protocol
