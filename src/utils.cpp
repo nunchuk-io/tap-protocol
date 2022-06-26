@@ -125,13 +125,12 @@ std::vector<uint32_t> Str2Path(const std::string &path) {
 
 // TODO: secure rand?
 using random_bytes_engine =
-    std::independent_bits_engine<std::default_random_engine, CHAR_BIT,
-                                 unsigned char>;
-static const random_bytes_engine rbe(std::random_device{}());
+    std::independent_bits_engine<std::default_random_engine, CHAR_BIT, unsigned char>;
+static random_bytes_engine rbe(std::random_device{}());
 
 Bytes RandomBytes(size_t size) {
   Bytes result(size);
-  std::generate(std::begin(result), std::end(result), rbe);
+  std::generate(std::begin(result), std::end(result), std::ref(rbe));
   return result;
 }
 

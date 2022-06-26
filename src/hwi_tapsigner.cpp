@@ -342,7 +342,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
       preimage << txin.nSequence;
       preimage << MakeUCharSpan(hashOutputs);
       preimage << blank_tx.nLockTime;
-      preimage << MakeUCharSpan(Bytes{0x01, 0x00, 0x00, 0x00});
+      preimage << MakeUCharSpan(std::array<uchar, 4>{0x01, 0x00, 0x00, 0x00});
 
       sighash = SHA256d({std::begin(preimage), std::end(preimage)});
     }

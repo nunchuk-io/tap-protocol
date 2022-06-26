@@ -75,7 +75,7 @@ class CKTapCard {
  private:
   nlohmann::json::binary_t card_nonce_;
   nlohmann::json::binary_t card_pubkey_;
-  nlohmann::json::binary_t card_ident_;
+  std::string card_ident_;
   std::string applet_version_;
   int birth_height_{};
   bool is_testnet_{};

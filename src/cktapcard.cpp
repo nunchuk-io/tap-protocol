@@ -22,7 +22,7 @@ static constexpr std::array<unsigned char, 33> FACTORY_ROOT_KEY = {
     0x2f, 0x03, 0xe7, 0x06, 0xee, 0x99, 0x51, 0x7d, 0x05, 0xd9, 0xe1,
 };
 
-Bytes CardPubkeyToIdent(const Bytes& card_pubkey) {
+static std::string CardPubkeyToIdent(const Bytes& card_pubkey) {
   if (card_pubkey.size() != 33) {
     throw TapProtoException(TapProtoException::INVALID_PUBKEY_LENGTH,
                             "Expecting compressed pubkey");
@@ -35,7 +35,7 @@ Bytes CardPubkeyToIdent(const Bytes& card_pubkey) {
 
   static constexpr int IDENT_SIZE = 23;
 
-  Bytes ident(IDENT_SIZE);
+  std::string ident(IDENT_SIZE, '\0');
   for (int i = 0, j = 0; i < 20; ++i) {
     if ((j + 1) % 6 == 0) {
       ident[j++] = '-';
