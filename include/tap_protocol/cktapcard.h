@@ -58,14 +58,14 @@ class CKTapCard {
   int GetAuthDelay() const noexcept;
   bool IsTapsigner() const noexcept;
 
-  StatusResponse Status();
+  virtual StatusResponse Status();
   std::string NFC();
   std::string CertificateCheck();
   WaitResponse Wait();
-  virtual NewResponse New(const Bytes& chain_code, const std::string& cvc,
-                          int slot = 0) = 0;
-  virtual Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
-                     const std::string& subpath = {}) = 0;
+  NewResponse New(const Bytes& chain_code, const std::string& cvc,
+                  int slot = 0);
+  Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
+             const std::string& subpath = {});
 
  protected:
   CKTapCard() = default;
@@ -115,6 +115,7 @@ class Tapsigner : public CKTapCard {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(BackupResponse, data, card_nonce);
   };
 
+  StatusResponse Status() override;
   DeriveResponse Derive(const std::string& path, const std::string& cvc);
   std::string GetXFP(const std::string& cvc);
   std::string Xpub(const std::string& cvc, bool master);
@@ -122,17 +123,19 @@ class Tapsigner : public CKTapCard {
   std::string GetDerivation();
   ChangeResponse Change(const std::string& new_cvc, const std::string& cvc);
   BackupResponse Backup(const std::string& cvc);
-  NewResponse New(const Bytes& chain_code, const std::string& cvc,
-                  int slot = 0) override;
-  Bytes Sign(const Bytes& digest, const std::string& cvc, int slot = 0,
-             const std::string& subpath = {}) override;
 
   int GetNumberOfBackups() const noexcept;
-  std::optional<std::string> GetInitDerivation() const noexcept;
+  std::optional<std::string> GetDerivationPath() const noexcept;
 
  private:
   int number_of_backup_{};
-  std::optional<std::string> init_derivation_;
+  std::optional<std::string> derivation_path_;
+};
+
+class SatsCard : public CKTapCard {
+  using CKTapCard::CKTapCard;
+
+ public:
 };
 
 }  // namespace tap_protocol

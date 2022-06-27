@@ -170,6 +170,99 @@ std::string CKTapCard::CertificateCheck() {
 
 CKTapCard::WaitResponse CKTapCard::Wait() { return Send({{"cmd", "wait"}}); }
 
+CKTapCard::NewResponse CKTapCard::New(const Bytes& chain_code,
+                                      const std::string& cvc, int slot) {
+  const auto [_, resp] = SendAuth({{"cmd", "new"},
+                                   {"slot", slot},
+                                   {"chain_code", json::binary_t(chain_code)}},
+                                  {std::begin(cvc), std::end(cvc)});
+  return resp;
+}
+
+Bytes CKTapCard::Sign(const Bytes& digest, const std::string& cvc, int slot,
+                      const std::string& subpath) {
+  const auto make_recoverable_sig = [](const Bytes& digest, const Bytes& sig,
+                                       const Bytes& expected_pubkey) {
+    assert(digest.size() == 32);
+    assert(sig.size() == 64);
+
+    for (int rec_id = 0; rec_id < 4; ++rec_id) {
+      Bytes rec_sig, pubkey;
+      rec_sig.reserve(1 + sig.size());
+      try {
+        rec_sig.push_back(39 + rec_id);
+        rec_sig.insert(std::end(rec_sig), std::begin(sig), std::end(sig));
+        pubkey = CT_sig_to_pubkey(digest, rec_sig);
+      } catch (TapProtoException& te) {
+        if (rec_id >= 2) {
+          continue;
+        }
+      }
+      if (!expected_pubkey.empty()) {
+        if (expected_pubkey != pubkey) {
+          continue;
+        }
+      }
+      return rec_sig;
+    }
+    throw TapProtoException(TapProtoException::SIGN_ERROR,
+                            "Sig may not be created by that address/pubkey??");
+  };
+
+  if (digest.size() != 32) {
+    throw TapProtoException(TapProtoException::INVALID_DIGEST_LENGTH,
+                            "Digest must be exactly 32 bytes");
+  }
+
+  const std::vector<uint32_t> subpath_int =
+      !subpath.empty() ? Str2Path(subpath) : std::vector<uint32_t>();
+
+  if (subpath_int.size() > 2) {
+    throw TapProtoException(TapProtoException::INVALID_PATH_LENGTH,
+                            "Length of path is greater than 2");
+  }
+
+  const auto none_hardened = [](const std::vector<uint32_t>& path) {
+    return !std::any_of(std::begin(path), std::end(path),
+                        [](uint32_t i) { return i & HARDENED; });
+  };
+
+  if (!none_hardened(subpath_int)) {
+    throw TapProtoException(TapProtoException::MALFORMED_BIP32_PATH,
+                            "Subpath contains hardened components");
+  }
+
+  for (int retry = 0; retry < 5; ++retry) {
+    try {
+      const json request = {
+          {"cmd", "sign"},
+          {"slot", slot},
+          {"digest", digest},
+          {"subpath", subpath_int},
+      };
+      const auto [_, resp] =
+          SendAuth(request, {std::begin(cvc), std::end(cvc)});
+
+      const Bytes expect_pub = resp["pubkey"].get<json::binary_t>();
+      const Bytes sig = resp["sig"].get<json::binary_t>();
+
+      if (!CT_sig_verify(expect_pub, digest, sig)) {
+        continue;
+      }
+      auto rec_sig = make_recoverable_sig(digest, sig, expect_pub);
+      return rec_sig;
+    } catch (TapProtoException& te) {
+      if (te.code() == 205) {
+        Status();
+        continue;
+      }
+      throw;
+    }
+  }
+  throw TapProtoException(TapProtoException::EXCEEDED_RETRY,
+                          "Failed to sign digest after 5 retries. Try again.");
+}
+
 std::string CKTapCard::GetIdent() const noexcept {
   return {std::begin(card_ident_), std::end(card_ident_)};
 }
@@ -259,16 +352,24 @@ void from_json(const nlohmann::json& j, Tapsigner::ChangeResponse& t) {
 Tapsigner::Tapsigner(std::unique_ptr<Transport> transport) {
   transport_ = std::move(transport);
   auto st = FirstLook();
-  // TODO: update on status
   number_of_backup_ = st.num_backups;
   if (st.path) {
-    init_derivation_ = Path2Str(*st.path);
+    derivation_path_ = Path2Str(*st.path);
   }
 }
 
+Tapsigner::StatusResponse Tapsigner::Status() {
+  auto st = CKTapCard::Status();
+  number_of_backup_ = st.num_backups;
+  if (st.path) {
+    derivation_path_ = Path2Str(*st.path);
+  }
+  return st;
+}
+
 int Tapsigner::GetNumberOfBackups() const noexcept { return number_of_backup_; }
-std::optional<std::string> Tapsigner::GetInitDerivation() const noexcept {
-  return init_derivation_;
+std::optional<std::string> Tapsigner::GetDerivationPath() const noexcept {
+  return derivation_path_;
 }
 
 std::string Tapsigner::GetDerivation() {
@@ -382,97 +483,6 @@ Tapsigner::BackupResponse Tapsigner::Backup(const std::string& cvc) {
   return resp;
 }
 
-Tapsigner::NewResponse Tapsigner::New(const Bytes& chain_code,
-                                      const std::string& cvc, int slot) {
-  const auto [_, resp] = SendAuth({{"cmd", "new"},
-                                   {"slot", slot},
-                                   {"chain_code", json::binary_t(chain_code)}},
-                                  {std::begin(cvc), std::end(cvc)});
-  return resp;
-}
-
-Bytes Tapsigner::Sign(const Bytes& digest, const std::string& cvc, int slot,
-                      const std::string& subpath) {
-  const auto make_recoverable_sig = [](const Bytes& digest, const Bytes& sig,
-                                       const Bytes& expected_pubkey) {
-    assert(digest.size() == 32);
-    assert(sig.size() == 64);
-
-    for (int rec_id = 0; rec_id < 4; ++rec_id) {
-      Bytes rec_sig, pubkey;
-      rec_sig.reserve(1 + sig.size());
-      try {
-        rec_sig.push_back(39 + rec_id);
-        rec_sig.insert(std::end(rec_sig), std::begin(sig), std::end(sig));
-        pubkey = CT_sig_to_pubkey(digest, rec_sig);
-      } catch (TapProtoException& te) {
-        if (rec_id >= 2) {
-          continue;
-        }
-      }
-      if (!expected_pubkey.empty()) {
-        if (expected_pubkey != pubkey) {
-          continue;
-        }
-      }
-      return rec_sig;
-    }
-    throw TapProtoException(TapProtoException::SIGN_ERROR,
-                            "Sig may not be created by that address/pubkey??");
-  };
-
-  if (digest.size() != 32) {
-    throw TapProtoException(TapProtoException::INVALID_DIGEST_LENGTH,
-                            "Digest must be exactly 32 bytes");
-  }
-
-  const std::vector<uint32_t> subpath_int =
-      !subpath.empty() ? Str2Path(subpath) : std::vector<uint32_t>();
-
-  if (subpath_int.size() > 2) {
-    throw TapProtoException(TapProtoException::INVALID_PATH_LENGTH,
-                            "Length of path is greater than 2");
-  }
-
-  const auto none_hardened = [](const std::vector<uint32_t>& path) {
-    return !std::any_of(std::begin(path), std::end(path),
-                        [](uint32_t i) { return i & HARDENED; });
-  };
-
-  if (!none_hardened(subpath_int)) {
-    throw TapProtoException(TapProtoException::MALFORMED_BIP32_PATH,
-                            "Subpath contains hardened components");
-  }
-
-  for (int retry = 0; retry < 5; ++retry) {
-    try {
-      const json request = {
-          {"cmd", "sign"},
-          {"slot", slot},
-          {"digest", digest},
-          {"subpath", subpath_int},
-      };
-      const auto [_, resp] =
-          SendAuth(request, {std::begin(cvc), std::end(cvc)});
-
-      const Bytes expect_pub = resp["pubkey"].get<json::binary_t>();
-      const Bytes sig = resp["sig"].get<json::binary_t>();
-
-      if (!CT_sig_verify(expect_pub, digest, sig)) {
-        continue;
-      }
-      auto rec_sig = make_recoverable_sig(digest, sig, expect_pub);
-      return rec_sig;
-    } catch (TapProtoException& te) {
-      if (te.code() == 205) {
-        Status();
-        continue;
-      }
-      throw;
-    }
-  }
-  throw TapProtoException(TapProtoException::EXCEEDED_RETRY,
-                          "Failed to sign digest after 5 retries. Try again.");
-}
+// SatsCard
 
 }  // namespace tap_protocol
