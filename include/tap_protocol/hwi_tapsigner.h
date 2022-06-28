@@ -44,7 +44,7 @@ class HWITapsigner {
   virtual std::string GetMasterXpub(AddressType address_type = WIT,
                                     int account = 0) = 0;
   virtual std::string GetXpubAtPath(const std::string &derivation_path) = 0;
-  virtual bool SetupDevice() = 0;
+  virtual bool SetupDevice(const std::string &chain_code = {}) = 0;
   virtual Bytes BackupDevice() = 0;
   virtual Bytes DecryptBackup(const Bytes &encrypted_data,
                               const std::string &backup_key) = 0;
@@ -67,7 +67,7 @@ class HWITapsignerImpl : public HWITapsigner {
   std::string GetMasterXpub(AddressType address_type = WIT,
                             int account = 0) override;
   std::string GetXpubAtPath(const std::string &path) override;
-  bool SetupDevice() override;
+  bool SetupDevice(const std::string &chain_code = {}) override;
   Bytes BackupDevice() override;
   Bytes DecryptBackup(const Bytes &encrypted_data,
                       const std::string &backup_key) override;
