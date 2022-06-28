@@ -461,14 +461,13 @@ void HWITapsignerImpl::SetDevice(Tapsigner *device, const std::string &cvc) {
 
 bool HWITapsignerImpl::SetupDevice(const std::string &chain_code) {
   GetCVC();
-  if (chain_code.size() != 64) {
+  if (!chain_code.empty() && chain_code.size() != 64) {
     throw TapProtoException(
         TapProtoException::BAD_ARGUMENTS,
         "Invalid chain code size = " + std::to_string(chain_code.size()));
   }
   auto use_chain_code =
-      chain_code.empty() ? SHA256d(RandomBytes(128))
-                         : Bytes(std::begin(chain_code), std::end(chain_code));
+      chain_code.empty() ? SHA256d(RandomBytes(128)) : Hex2Bytes(chain_code);
   try {
     device_->New(use_chain_code, cvc_);
     return true;

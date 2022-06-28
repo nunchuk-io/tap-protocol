@@ -125,7 +125,8 @@ std::vector<uint32_t> Str2Path(const std::string &path) {
 
 // TODO: secure rand?
 using random_bytes_engine =
-    std::independent_bits_engine<std::default_random_engine, CHAR_BIT, unsigned char>;
+    std::independent_bits_engine<std::default_random_engine, CHAR_BIT,
+                                 unsigned char>;
 static random_bytes_engine rbe(std::random_device{}());
 
 Bytes RandomBytes(size_t size) {
@@ -134,9 +135,6 @@ Bytes RandomBytes(size_t size) {
   return result;
 }
 
-Bytes PickNonce() {
-  static constexpr int USER_NONCE_SIZE = 16;
-  return RandomBytes(USER_NONCE_SIZE);
-}
+Bytes PickNonce() { return RandomBytes(USER_NONCE_SIZE); }
 
 }  // namespace tap_protocol

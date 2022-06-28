@@ -19,7 +19,7 @@ class CKTapCard {
     int proto{};
     std::string ver;
     int birth{};
-    std::vector<int> slots;
+    std::vector<int> slots{0, 1};
     std::string address;
     nlohmann::json::binary_t pubkey;
     nlohmann::json::binary_t card_nonce;
@@ -28,6 +28,7 @@ class CKTapCard {
     int num_backups{};
     bool testnet{};
     int auth_delay{};
+    bool tampered{};
 
     friend void to_json(nlohmann::json& j, const StatusResponse& t);
     friend void from_json(const nlohmann::json& j, StatusResponse& t);
@@ -56,9 +57,9 @@ class CKTapCard {
   int GetBirthHeight() const noexcept;
   bool IsTestnet() const noexcept;
   int GetAuthDelay() const noexcept;
-  bool IsTapsigner() const noexcept;
+  bool IsTampered() const noexcept;
 
-  virtual StatusResponse Status();
+  StatusResponse Status();
   std::string NFC();
   std::string CertificateCheck();
   WaitResponse Wait();
@@ -70,6 +71,7 @@ class CKTapCard {
  protected:
   CKTapCard() = default;
   StatusResponse FirstLook();
+  virtual void Update(const StatusResponse& status);
   std::unique_ptr<Transport> transport_;
 
  private:
@@ -80,8 +82,7 @@ class CKTapCard {
   int birth_height_{};
   bool is_testnet_{};
   int auth_delay_{};
-  bool is_tapsigner_{};
-  int number_of_backup_{};
+  bool tampered_{};
 };
 
 class Tapsigner : public CKTapCard {
@@ -89,6 +90,7 @@ class Tapsigner : public CKTapCard {
 
  public:
   explicit Tapsigner(std::unique_ptr<Transport> transport);
+
   struct DeriveResponse {
     nlohmann::json::binary_t sig;
     nlohmann::json::binary_t chain_code;
@@ -115,7 +117,6 @@ class Tapsigner : public CKTapCard {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(BackupResponse, data, card_nonce);
   };
 
-  StatusResponse Status() override;
   DeriveResponse Derive(const std::string& path, const std::string& cvc);
   std::string GetXFP(const std::string& cvc);
   std::string Xpub(const std::string& cvc, bool master);
@@ -127,15 +128,42 @@ class Tapsigner : public CKTapCard {
   int GetNumberOfBackups() const noexcept;
   std::optional<std::string> GetDerivationPath() const noexcept;
 
+ protected:
+  void Update(const StatusResponse& status) override;
+
  private:
+  bool is_tapsigner_{};
   int number_of_backup_{};
   std::optional<std::string> derivation_path_;
 };
 
-class SatsCard : public CKTapCard {
+class Satscard : public CKTapCard {
   using CKTapCard::CKTapCard;
 
  public:
+  explicit Satscard(std::unique_ptr<Transport> transport);
+
+  struct UnsealResponse {
+    int slot{};
+    json::binary_t privkey;
+    json::binary_t pubkey;
+    json::binary_t master_pk;
+    json::binary_t chain_code;
+    json::binary_t card_nonce;
+
+    friend void to_json(nlohmann::json& j, const UnsealResponse& t);
+    friend void from_json(const nlohmann::json& j, UnsealResponse& t);
+  };
+
+  UnsealResponse Unseal(const std::string& cvc);
+  NewResponse New(const Bytes& chain_code, const std::string& cvc);
+
+ protected:
+  void Update(const StatusResponse& status) override;
+
+ private:
+  int active_slot_ = 0;
+  int num_slots_ = 1;
 };
 
 }  // namespace tap_protocol

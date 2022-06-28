@@ -26,6 +26,17 @@ using SendReceiveFunctionIOS =
 
 class TapProtoException : public std::exception {
  public:
+  static constexpr int UNLUCKY_NUMBER = 205;
+  static constexpr int BAD_ARGUMENTS = 400;
+  static constexpr int BAD_AUTH = 401;
+  static constexpr int NEED_AUTH = 403;
+  static constexpr int UNKNOW_COMMAND = 404;
+  static constexpr int INVALID_COMMAND = 405;
+  static constexpr int INVALID_STATE = 406;
+  static constexpr int WEAK_NONCE = 417;
+  static constexpr int BAD_CBOR = 422;
+  static constexpr int BACKUP_FIRST = 425;
+  static constexpr int RATE_LIMIT = 429;
   static constexpr int DEFAULT_ERROR = 500;
   static constexpr int MESSAGE_TOO_LONG = 601;
   static constexpr int MISSING_KEY = 602;
@@ -65,6 +76,19 @@ class TapProtoException : public std::exception {
   int code_;
   std::string message_;
 };
+
+static constexpr std::array<char, 8> OPENDIME = {'O', 'P', 'E', 'N',
+                                                 'D', 'I', 'M', 'E'};
+
+static constexpr std::array<unsigned char, 33> FACTORY_ROOT_KEY = {
+    0x03, 0x02, 0x8a, 0x0e, 0x89, 0xe7, 0x0d, 0x0e, 0xc0, 0xd9, 0x32,
+    0x05, 0x3a, 0x89, 0xab, 0x1d, 0xa7, 0xd9, 0x18, 0x2b, 0xdc, 0x6d,
+    0x2f, 0x03, 0xe7, 0x06, 0xee, 0x99, 0x51, 0x7d, 0x05, 0xd9, 0xe1,
+};
+
+static constexpr int CARD_NONCE_SIZE = 16;
+static constexpr int USER_NONCE_SIZE = 16;
+static constexpr uint32_t HARDENED = 0x80000000;
 
 }  // namespace tap_protocol
 

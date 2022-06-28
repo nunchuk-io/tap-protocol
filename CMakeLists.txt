@@ -24,6 +24,8 @@ set(${PROJECT_NAME}_SOURCES
         src/utils.cpp
         src/secp256k1_utils.cpp
         src/cktapcard.cpp
+        src/tapsigner.cpp
+        src/satscard.cpp
         src/transport.cpp
         src/secp256k1_utils.cpp
         src/hash_utils.cpp
@@ -82,6 +84,7 @@ if (BUILD_TESTING)
             tests/secp256k1_test.cpp
             tests/utils_test.cpp
             tests/hwi_tapsigner_test.cpp
+            tests/satscard_test.cpp
             )
     foreach (file ${files})
         get_filename_component(testcase ${file} NAME_WE)
