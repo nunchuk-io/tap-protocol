@@ -20,7 +20,7 @@ class CKTapCard {
     std::string ver;
     int birth{};
     std::vector<int> slots{0, 1};
-    std::string address;
+    std::string addr;
     nlohmann::json::binary_t pubkey;
     nlohmann::json::binary_t card_nonce;
     bool tapsigner{};
@@ -72,7 +72,9 @@ class CKTapCard {
   CKTapCard() = default;
   StatusResponse FirstLook();
   virtual void Update(const StatusResponse& status);
+
   std::unique_ptr<Transport> transport_;
+  bool certs_checked{};
 
  private:
   nlohmann::json::binary_t card_nonce_;
@@ -157,6 +159,7 @@ class Satscard : public CKTapCard {
 
   UnsealResponse Unseal(const std::string& cvc);
   NewResponse New(const Bytes& chain_code, const std::string& cvc);
+  std::string Address(bool faster = false, int slot = 0);
 
  protected:
   void Update(const StatusResponse& status) override;

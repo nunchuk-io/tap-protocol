@@ -76,4 +76,23 @@ Satscard::NewResponse Satscard::New(const Bytes& chain_code,
   active_slot_ = resp.slot;
   return resp;
 }
+
+std::string Satscard::Address(bool faster, int slot) {
+  if (!certs_checked && !faster) {
+    CertificateCheck();
+  }
+  auto st = Status();
+  int cur_slot = st.slots[0];
+  if (st.addr.empty() && cur_slot == slot) {
+    return {};
+  }
+  if (slot != cur_slot) {
+    auto dump = Send({
+        {"cmd", "dump"},
+        {"slot", slot},
+    });
+    return dump["addr"];
+  }
+  return {};
+}
 }  // namespace tap_protocol

@@ -122,7 +122,7 @@ std::string CKTapCard::CertificateCheck() {
     msg.insert(std::end(msg), std::begin(card_nonce), std::end(card_nonce));
     msg.insert(std::end(msg), std::begin(my_nonce), std::end(my_nonce));
 
-    if (msg.size() != OPENDIME.size() + CARD_NONCE_SIZE + USER_NONCE_SIZE) {
+    if (msg.size() != std::size(OPENDIME) + CARD_NONCE_SIZE + USER_NONCE_SIZE) {
       throw TapProtoException(TapProtoException::INVALID_CARD,
                               "Invalid msg size " + std::to_string(msg.size()));
     }
@@ -159,7 +159,9 @@ std::string CKTapCard::CertificateCheck() {
       {"nonce", json::binary_t(nonce)},
   });
 
-  return verify_certs(st, check, certs, nonce);
+  auto cert = verify_certs(st, check, certs, nonce);
+  certs_checked = true;
+  return cert;
 }
 
 CKTapCard::WaitResponse CKTapCard::Wait() { return Send({{"cmd", "wait"}}); }
@@ -277,12 +279,18 @@ bool CKTapCard::IsTampered() const noexcept { return tampered_; }
 
 void to_json(json& j, const CKTapCard::StatusResponse& t) {
   j = {
-      {"proto", t.proto},           {"ver", t.ver},
-      {"birth", t.birth},           {"slots", t.slots},
-      {"address", t.address},       {"pubkey", t.pubkey},
-      {"card_nonce", t.card_nonce}, {"tapsigner", t.tapsigner},
-      {"testnet", t.testnet},       {"num_backups", t.num_backups},
-      {"auth_delay", t.auth_delay}, {"tampered", t.tampered},
+      {"proto", t.proto},
+      {"ver", t.ver},
+      {"birth", t.birth},
+      {"slots", t.slots},
+      {"addr", t.addr},
+      {"pubkey", t.pubkey},
+      {"card_nonce", t.card_nonce},
+      {"tapsigner", t.tapsigner},
+      {"testnet", t.testnet},
+      {"num_backups", t.num_backups},
+      {"auth_delay", t.auth_delay},
+      {"tampered", t.tampered},
   };
   if (t.path) {
     j["path"] = *t.path;
@@ -294,7 +302,7 @@ void from_json(const json& j, CKTapCard::StatusResponse& t) {
   t.ver = j.value("ver", t.ver);
   t.birth = j.value("birth", t.birth);
   t.slots = j.value("slots", t.slots);
-  t.address = j.value("address", t.address);
+  t.addr = j.value("addr", t.addr);
   t.pubkey = j.value("pubkey", t.pubkey);
   t.card_nonce = j.value("card_nonce", t.card_nonce);
   t.tapsigner = j.value("tapsigner", t.tapsigner);
