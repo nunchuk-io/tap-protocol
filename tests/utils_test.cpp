@@ -62,11 +62,11 @@ TEST_CASE("derive tapsigner") {
 
   tap_protocol::Tapsigner tapSigner(std::move(tp));
   // When set derivation path
-  auto resp = tapSigner.Derive("84h/0h/0h", "123456");
+  auto resp = tapSigner.Derive("m/", "123456");
 
   // Then return a pubkey to this path
   CHECK(!resp.pubkey.empty());
-  MESSAGE("derive:", json(resp).dump(2));
+  MESSAGE("derive (m/):", json(resp).dump(2));
 }
 
 TEST_CASE("test tapsigner derivation path") {
@@ -75,10 +75,15 @@ TEST_CASE("test tapsigner derivation path") {
       std::make_unique<CardEmulator>();
 
   tap_protocol::Tapsigner tapSigner(std::move(tp));
-  // When get derivation path
+  tapSigner.Derive("m/", "123456");
+
   std::string d = tapSigner.GetDerivation();
-  // Then return derivation path
+  CHECK(d.empty());
+
+  tapSigner.Derive("m/84h", "123456");
+  d = tapSigner.GetDerivation();
   CHECK(!d.empty());
+
   MESSAGE("derivation path:", d);
 }
 

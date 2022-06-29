@@ -386,11 +386,7 @@ std::string HWITapsignerImpl::GetXpubAtPath(
   packed << MakeUCharSpan(BASE58_PREFIX_PUBKEY[chain_])
          << MakeUCharSpan(pubkey_encoded);
 
-  auto checksum = SHA256d({std::begin(packed), std::end(packed)});
-  checksum.resize(4);
-
-  packed << MakeUCharSpan(checksum);
-  return EncodeBase58(packed);
+  return EncodeBase58Check(packed);
 }
 
 Bytes HWITapsignerImpl::GetMasterFingerprintBytes() {
@@ -464,10 +460,16 @@ bool HWITapsignerImpl::SetupDevice(const std::string &chain_code) {
   if (!chain_code.empty() && chain_code.size() != 64) {
     throw TapProtoException(
         TapProtoException::BAD_ARGUMENTS,
-        "Invalid chain code size = " + std::to_string(chain_code.size()));
+        "Invalid hex chain code size = " + std::to_string(chain_code.size()));
   }
   auto use_chain_code =
       chain_code.empty() ? SHA256d(RandomBytes(128)) : Hex2Bytes(chain_code);
+
+  if (use_chain_code.size() != 32) {
+    throw TapProtoException(
+        TapProtoException::BAD_ARGUMENTS,
+        "Invalid chain code size = " + std::to_string(chain_code.size()));
+  }
   try {
     device_->New(use_chain_code, cvc_);
     return true;
