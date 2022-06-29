@@ -79,6 +79,10 @@ add_library(${PROJECT_NAME} STATIC
         src/base58.h
         src/base58.cpp
 
+        src/util/vector.h
+        src/bech32.h
+        src/bech32.cpp
+
         src/crypto/aes.h
         src/crypto/aes.cpp
         )

@@ -3,6 +3,7 @@
 #include <secp256k1.h>
 #include <secp256k1_ecdh.h>
 #include <secp256k1_recovery.h>
+#include "pubkey.h"
 #include "tap_protocol/secp256k1_utils.h"
 #include "tap_protocol/utils.h"
 
@@ -134,6 +135,24 @@ bool CT_sig_verify(const Bytes& pubkey, const Bytes& msg, const Bytes& sig) {
     return false;
   }
   return true;
+}
+
+Bytes CT_priv_to_pubkey(const Bytes& privkey) {
+  secp256k1_pubkey ecpub;
+  if (!secp256k1_ec_pubkey_create(get_secp256k1_context(), &ecpub,
+                                  privkey.data())) {
+    throw TapProtoException(TapProtoException::DEFAULT_ERROR,
+                            "CT_priv_to_pubkey fail pubkey create");
+  }
+  Bytes output(EC_PUBLIC_KEY_LEN);
+  size_t output_len = output.size();
+  if (!secp256k1_ec_pubkey_serialize(get_secp256k1_context(), output.data(),
+                                     &output_len, &ecpub,
+                                     SECP256K1_EC_COMPRESSED)) {
+    throw TapProtoException(TapProtoException::DEFAULT_ERROR,
+                            "CT_priv_to_pubkey fail pubkey serialize");
+  }
+  return output;
 }
 
 }  // namespace tap_protocol
