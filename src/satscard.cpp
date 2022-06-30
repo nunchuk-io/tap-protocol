@@ -35,11 +35,12 @@ static std::string render_address(const Bytes& pubkey, bool testnet = false) {
   return bech32::Encode(bech32::Encoding::BECH32, testnet ? "tb" : "bc", input);
 }
 
-static const auto recover_address(const json& status, const json& read,
-                                  const Bytes& my_nonce) {
+static auto recover_address(const json& status, const json& read,
+                            const Bytes& my_nonce) {
   int slot = status["slots"][0];
   const json::binary_t card_nonce = status["card_nonce"];
   Bytes msg;
+  msg.reserve(std::size(OPENDIME) + card_nonce.size() + my_nonce.size() + 1);
   msg.insert(std::end(msg), std::begin(OPENDIME), std::end(OPENDIME));
   msg.insert(std::end(msg), std::begin(card_nonce), std::end(card_nonce));
   msg.insert(std::end(msg), std::begin(my_nonce), std::end(my_nonce));
@@ -77,11 +78,12 @@ static const auto recover_address(const json& status, const json& read,
   return std::make_pair(pubkey, addr);
 };
 
-static const auto verify_master_pubkey(const Bytes& pub, const Bytes& sig,
-                                       const Bytes& chain_code,
-                                       const Bytes& my_nonce,
-                                       const Bytes& card_nonce) {
+static auto verify_master_pubkey(const Bytes& pub, const Bytes& sig,
+                                 const Bytes& chain_code, const Bytes& my_nonce,
+                                 const Bytes& card_nonce) {
   Bytes msg;
+  msg.reserve(std::size(OPENDIME) + card_nonce.size() + my_nonce.size() +
+              chain_code.size());
   msg.insert(std::end(msg), std::begin(OPENDIME), std::end(OPENDIME));
   msg.insert(std::end(msg), std::begin(card_nonce), std::end(card_nonce));
   msg.insert(std::end(msg), std::begin(my_nonce), std::end(my_nonce));
@@ -101,7 +103,7 @@ static const auto verify_master_pubkey(const Bytes& pub, const Bytes& sig,
 };
 
 Satscard::Satscard(std::unique_ptr<Transport> transport)
-    : CKTapCard(std::move(transport)) {
+    : CKTapCard(std::move(transport), false) {
   FirstLook();
 }
 
@@ -156,7 +158,7 @@ Satscard::NewResponse Satscard::New(const Bytes& chain_code,
 }
 
 std::string Satscard::Address(bool faster, int slot) {
-  if (!certs_checked && !faster) {
+  if (!IsCertsChecked() && !faster) {
     CertificateCheck();
   }
   const auto st = Status();
@@ -197,9 +199,7 @@ std::string Satscard::Address(bool faster, int slot) {
   const Bytes master_pub = verify_master_pubkey(
       derive["master_pubkey"].get<json::binary_t>(),
       derive["sig"].get<json::binary_t>(),
-      derive["chain_code"].get<json::binary_t>(), my_nonce, card_nonce
-
-  );
+      derive["chain_code"].get<json::binary_t>(), my_nonce, card_nonce);
 
   return {};
 }

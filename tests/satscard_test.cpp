@@ -4,6 +4,15 @@
 #include "tap_protocol/cktapcard.h"
 #include "tap_protocol/hash_utils.h"
 #include "tap_protocol/utils.h"
+
+TEST_SUITE_BEGIN("satcard" * doctest::skip([]() -> bool {
+                   std::unique_ptr<tap_protocol::Transport> tp =
+                       std::make_unique<CardEmulator>();
+                   tap_protocol::CKTapCard card(std::move(tp));
+                   return card.IsTapsigner();
+                   ;
+                 }()));
+
 TEST_CASE("satscard status") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
@@ -44,9 +53,12 @@ TEST_CASE("get address") {
 
   std::string address = satcard.Address(true, 0);
   CHECK(!address.empty());
+  MESSAGE("slot: ", 0, "address: ", address);
 
   for (int slot = 1; slot < 10; ++slot) {
     std::string address = satcard.Address(true, slot);
     MESSAGE("slot: ", slot, "address: ", address);
   }
 }
+
+TEST_SUITE_END();

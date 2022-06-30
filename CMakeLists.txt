@@ -82,7 +82,7 @@ if (BUILD_TESTING)
             tests/transport_test.cpp
             tests/connection_test.cpp
             tests/secp256k1_test.cpp
-            tests/utils_test.cpp
+            tests/tapsigner_test.cpp
             tests/hwi_tapsigner_test.cpp
             tests/satscard_test.cpp
             )

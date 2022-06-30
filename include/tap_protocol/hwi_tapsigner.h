@@ -11,9 +11,6 @@ struct CExtPubKey;
 
 namespace tap_protocol {
 
-using PromptCVCCallback =
-    std::function<std::optional<std::string>(const std::string &message)>;
-
 class HWITapsigner {
  protected:
   HWITapsigner() = default;
@@ -48,7 +45,6 @@ class HWITapsigner {
   virtual Bytes BackupDevice() = 0;
   virtual Bytes DecryptBackup(const Bytes &encrypted_data,
                               const std::string &backup_key) = 0;
-  virtual void SetPromptCVCCallback(PromptCVCCallback func) = 0;
   virtual ~HWITapsigner() = default;
 };
 
@@ -56,7 +52,6 @@ class HWITapsignerImpl : public HWITapsigner {
  public:
   HWITapsignerImpl() = default;
   HWITapsignerImpl(Tapsigner *device, const std::string &cvc);
-  HWITapsignerImpl(Tapsigner *device, PromptCVCCallback cvc_callback);
   void SetChain(Chain chain) override;
   void SetDevice(Tapsigner *device) override;
   void SetDevice(Tapsigner *device, const std::string &cvc) override;
@@ -71,18 +66,16 @@ class HWITapsignerImpl : public HWITapsigner {
   Bytes BackupDevice() override;
   Bytes DecryptBackup(const Bytes &encrypted_data,
                       const std::string &backup_key) override;
-  void SetPromptCVCCallback(PromptCVCCallback func) override;
   ~HWITapsignerImpl() override = default;
 
  private:
+  void DeriveDevice(const std::string &derivation_path);
   Bytes GetMasterFingerprintBytes();
-  CExtPubKey GetPubkeyAtPath(const std::string &derivation_path);
-  void GetCVC(const std::string &message = "Please provide CVC:");
+  CExtPubKey GetXpubAtPathInternal(const std::string &derivation_path);
 
  private:
   Chain chain_ = MAIN;
   Tapsigner *device_;
-  PromptCVCCallback cvc_callback_;
   std::string cvc_;
 };
 
@@ -90,8 +83,6 @@ std::unique_ptr<HWITapsigner> MakeHWITapsigner(HWITapsigner::Chain chain);
 
 std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
                                                const std::string &cvc);
-std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
-                                               PromptCVCCallback cvc_callback);
 
 }  // namespace tap_protocol
 

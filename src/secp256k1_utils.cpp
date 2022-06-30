@@ -21,6 +21,7 @@ static secp256k1_context* get_secp256k1_context() {
     ContextHolder()
         : ctx(secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
                                        SECP256K1_CONTEXT_VERIFY)) {
+      // TODO(giahuy): maybe use bitcoin secure rand
       Bytes random_bytes = RandomBytes(32);
       assert(secp256k1_context_randomize(ctx, random_bytes.data()));
     }

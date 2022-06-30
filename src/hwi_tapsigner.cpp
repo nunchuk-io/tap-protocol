@@ -142,28 +142,29 @@ static bool is_hardened(int64_t component) { return component >= HARDENED; }
 
 static void check_bip32_path(const std::vector<uint32_t> &path) {
   bool found_non_hardened = false;
-  for (auto component : path) {
-    bool curr_hardened = is_hardened(component);
-    bool curr_non_hardened = !curr_hardened;
-    if (curr_hardened && found_non_hardened) {
-      throw TapProtoException(TapProtoException::MALFORMED_BIP32_PATH,
-                              "Hardened path component after non-hardened");
-    }
-    found_non_hardened = curr_non_hardened;
+
+  if (std::find_if(std::begin(path), std::end(path), [&](uint32_t component) {
+        bool current_hardened = is_hardened(component);
+        if (found_non_hardened && current_hardened) {
+          return true;
+        }
+        found_non_hardened |= !current_hardened;
+        return false;
+      }) != std::end(path)) {
+    throw TapProtoException(TapProtoException::MALFORMED_BIP32_PATH,
+                            "Hardened path component after non-hardened");
   }
 }
 
-static std::pair<std::vector<uint32_t>, std::vector<uint32_t>> split_bip32_path(
-    const std::vector<uint32_t> &path) {
-  std::vector<uint32_t> hardened, non_hardened;
-  for (auto component : path) {
-    if (is_hardened(component)) {
-      hardened.push_back(component);
-    } else {
-      non_hardened.push_back(component);
-    }
-  }
-  return {hardened, non_hardened};
+static auto split_bip32_path(const std::vector<uint32_t> &path) {
+  check_bip32_path(path);
+  auto last_hardened_iter =
+      std::find_if_not(std::begin(path), std::end(path), is_hardened);
+
+  std::vector<uint32_t> hardened(std::begin(path), last_hardened_iter);
+  std::vector<uint32_t> non_hardened(last_hardened_iter, std::end(path));
+
+  return std::make_pair(hardened, non_hardened);
 }
 
 static PartiallySignedTransaction DecodePsbt(const std::string &base64_psbt) {
@@ -214,20 +215,17 @@ static Bytes AES128CTRDecrypt(const Bytes &cipher, const Bytes &key,
   return plain;
 }
 
-CExtPubKey HWITapsignerImpl::GetPubkeyAtPath(
+CExtPubKey HWITapsignerImpl::GetXpubAtPathInternal(
     const std::string &derivation_path) {
-  auto int_path = Str2Path(derivation_path);
-  check_bip32_path(int_path);
-  auto [hardened, non_hardened] = split_bip32_path(int_path);
+  auto [hardened, non_hardened] = split_bip32_path(Str2Path(derivation_path));
 
   if (non_hardened.empty()) {
-    device_->Derive(derivation_path, cvc_);
+    DeriveDevice(derivation_path);
     auto xp = device_->Xpub(cvc_, false);
     return DecodeExtPubKey(chain_, xp);
   }
 
-  auto str_path = Path2Str(hardened);
-  device_->Derive(str_path, cvc_);
+  DeriveDevice(Path2Str(hardened));
   auto xp = device_->Xpub(cvc_, false);
   auto pub = DecodeExtPubKey(chain_, xp);
   for (uint32_t path : non_hardened) {
@@ -237,12 +235,7 @@ CExtPubKey HWITapsignerImpl::GetPubkeyAtPath(
   return pub;
 }
 
-void HWITapsignerImpl::SetPromptCVCCallback(PromptCVCCallback func) {
-  cvc_callback_ = std::move(func);
-}
-
 std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
-  GetCVC();
   auto tx = DecodePsbt(base64_psbt);
   auto &blank_tx = get_unsigned_tx(tx);
   Bytes master_fp = GetMasterFingerprintBytes();
@@ -361,9 +354,8 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
   }
 
   for (auto &&[sighash, int_path, i_num, pubkey] : sighash_tuples) {
-    check_bip32_path(int_path);
     auto [hardened, non_hardened] = split_bip32_path(int_path);
-    device_->Derive(Path2Str(hardened), cvc_);
+    DeriveDevice(Path2Str(hardened));
     auto rec_sig = device_->Sign(sighash, cvc_, 0, Path2Str(non_hardened));
     assert(rec_sig.size() == 65);
     Bytes r(std::begin(rec_sig) + 1, std::begin(rec_sig) + 33);
@@ -376,8 +368,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
 
 std::string HWITapsignerImpl::GetXpubAtPath(
     const std::string &derivation_path) {
-  GetCVC();
-  auto pubkey = GetPubkeyAtPath(derivation_path);
+  auto pubkey = GetXpubAtPathInternal(derivation_path);
   CDataStream packed(SER_NETWORK, PROTOCOL_VERSION);
 
   Bytes pubkey_encoded(BIP32_EXTKEY_SIZE);
@@ -389,34 +380,33 @@ std::string HWITapsignerImpl::GetXpubAtPath(
   return EncodeBase58Check(packed);
 }
 
+void HWITapsignerImpl::DeriveDevice(const std::string &derivation_path) {
+  if (device_->GetDerivationPath() != derivation_path) {
+    device_->Derive(derivation_path, cvc_);
+  }
+}
 Bytes HWITapsignerImpl::GetMasterFingerprintBytes() {
-  auto pubkey = GetPubkeyAtPath("m");
+  auto pubkey = GetXpubAtPathInternal("m");
   auto hashed = Hash160(pubkey.pubkey);
   return {std::begin(hashed), std::begin(hashed) + 4};
 }
 std::string HWITapsignerImpl::GetMasterFingerprint() {
-  GetCVC();
   return Bytes2Hex(GetMasterFingerprintBytes());
 }
 
 std::string HWITapsignerImpl::GetMasterXpub(AddressType address_type,
                                             int account) {
-  GetCVC();
   int bip44_pupose = get_bip44_purpose(address_type);
   int bip44_chain = chain_;
   std::ostringstream path;
   path << "m/" << bip44_pupose << "h/" << bip44_chain << "h/" << account << "h";
-  auto pubkey = GetPubkeyAtPath(path.str());
+  auto pubkey = GetXpubAtPathInternal(path.str());
   return EncodeExtPubKey(chain_, pubkey);
 }
 
 std::string HWITapsignerImpl::SignMessage(const std::string &message,
                                           const std::string &derivation_path) {
-  GetCVC();
-  auto int_path = Str2Path(derivation_path);
-  check_bip32_path(int_path);
-
-  auto [hardened, non_hardened] = split_bip32_path(int_path);
+  auto [hardened, non_hardened] = split_bip32_path(Str2Path(derivation_path));
 
   CDataStream xmsg(SER_NETWORK, PROTOCOL_VERSION);
 
@@ -429,7 +419,7 @@ std::string HWITapsignerImpl::SignMessage(const std::string &message,
 
   Bytes rec_sig;
   if (non_hardened.empty()) {
-    device_->Derive(derivation_path, cvc_);
+    DeriveDevice(derivation_path);
     rec_sig = device_->Sign(md, cvc_, 0);
   } else {
     if (non_hardened.size() > 2) {
@@ -437,7 +427,7 @@ std::string HWITapsignerImpl::SignMessage(const std::string &message,
           TapProtoException::INVALID_PATH_LENGTH,
           "Only 2 non-hardened derivation components allowed");
     }
-    device_->Derive(Path2Str(hardened), cvc_);
+    DeriveDevice(Path2Str(hardened));
     rec_sig = device_->Sign(md, cvc_, 0, Path2Str(non_hardened));
   }
 
@@ -452,11 +442,10 @@ void HWITapsignerImpl::SetDevice(Tapsigner *device) { device_ = device; }
 
 void HWITapsignerImpl::SetDevice(Tapsigner *device, const std::string &cvc) {
   device_ = device;
-  cvc_callback_ = [cvc](const std::string &) { return cvc; };
+  cvc_ = cvc;
 }
 
 bool HWITapsignerImpl::SetupDevice(const std::string &chain_code) {
-  GetCVC();
   if (!chain_code.empty() && chain_code.size() != 64) {
     throw TapProtoException(
         TapProtoException::BAD_ARGUMENTS,
@@ -479,45 +468,28 @@ bool HWITapsignerImpl::SetupDevice(const std::string &chain_code) {
 }
 
 Bytes HWITapsignerImpl::BackupDevice() {
-  GetCVC();
   auto resp = device_->Backup(cvc_);
   return resp.data;
 }
 
 Bytes HWITapsignerImpl::DecryptBackup(const Bytes &encrypted_data,
                                       const std::string &backup_key) {
-  static constexpr std::array<std::array<char, 4>, 2> PREFIXES = {
-      {{'x', 'p', 'r', 'v'}, {'t', 'p', 'r', 'v'}}};
+  static constexpr unsigned char xprv[] = {'x', 'p', 'r', 'v'};
+  static constexpr unsigned char tprv[] = {'t', 'p', 'r', 'v'};
 
   const auto backup_key_bytes = ParseHex(backup_key);
   Bytes decrypted = AES128CTRDecrypt(encrypted_data, backup_key_bytes);
-  for (const auto &prefix : PREFIXES) {
-    if (std::equal(std::begin(prefix), std::end(prefix),
-                   std::begin(decrypted))) {
-      return decrypted;
-    }
+
+  if (std::equal(std::begin(xprv), std::end(xprv), std::begin(decrypted)) ||
+      std::equal(std::begin(tprv), std::end(tprv), std::begin(decrypted))) {
+    return decrypted;
   }
   throw TapProtoException(TapProtoException::INVALID_BACKUP_KEY,
                           "Invalid backup key");
 }
 
-void HWITapsignerImpl::GetCVC(const std::string &message) {
-  auto opt_cvc = cvc_callback_(message);
-  if (opt_cvc) {
-    cvc_ = *opt_cvc;
-  }
-  // for (int i = 0; i < device_->GetAuthDelay(); ++i) {
-  //   device_->Wait();
-  // }
-}
-
-HWITapsignerImpl::HWITapsignerImpl(Tapsigner *device,
-                                   PromptCVCCallback cvc_callback)
-    : device_(device), cvc_callback_(std::move(cvc_callback)) {}
-
 HWITapsignerImpl::HWITapsignerImpl(Tapsigner *device, const std::string &cvc)
-    : device_(device),
-      cvc_callback_([=](const std::string &) { return cvc; }) {}
+    : device_(device), cvc_(cvc) {}
 
 std::unique_ptr<HWITapsigner> MakeHWITapsigner(HWITapsigner::Chain chain) {
   auto hwi = std::make_unique<HWITapsignerImpl>();
@@ -530,8 +502,4 @@ std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
   return std::make_unique<HWITapsignerImpl>(device, cvc);
 }
 
-std::unique_ptr<HWITapsigner> MakeHWITapsigner(Tapsigner *device,
-                                               PromptCVCCallback cvc_callback) {
-  return std::make_unique<HWITapsignerImpl>(device, std::move(cvc_callback));
-}
 }  // namespace tap_protocol

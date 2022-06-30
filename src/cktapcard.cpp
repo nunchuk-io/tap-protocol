@@ -34,8 +34,26 @@ static std::string CardPubkeyToIdent(const Bytes& card_pubkey) {
   return ident;
 }
 
-CKTapCard::CKTapCard(std::unique_ptr<Transport> transport)
-    : transport_(std::move(transport)) {}
+CKTapCard::CKTapCard(std::unique_ptr<Transport> transport, bool first_look)
+    : transport_(std::move(transport)) {
+  if (first_look) {
+    FirstLook();
+  }
+}
+
+std::unique_ptr<Tapsigner> ToTapsigner(CKTapCard&& cktapcard) {
+  if (cktapcard.IsTapsigner()) {
+    return std::make_unique<Tapsigner>(std::move(cktapcard.transport_));
+  }
+  throw TapProtoException(TapProtoException::INVALID_CARD, "Not a TAPSIGNER");
+}
+
+std::unique_ptr<Satscard> ToSatscard(CKTapCard&& cktapcard) {
+  if (!cktapcard.IsTapsigner()) {
+    return std::make_unique<Satscard>(std::move(cktapcard.transport_));
+  }
+  throw TapProtoException(TapProtoException::INVALID_CARD, "Not a SATSCARD");
+}
 
 CKTapCard::StatusResponse CKTapCard::FirstLook() {
   auto status = Status();
@@ -48,11 +66,16 @@ CKTapCard::StatusResponse CKTapCard::FirstLook() {
   applet_version_ = status.ver;
   birth_height_ = status.birth;
   is_testnet_ = status.testnet;
+  is_tapsigner_ = status.tapsigner;
   tampered_ = status.tampered;
   return status;
 }
 
 json CKTapCard::Send(const json& msg) {
+  if (transport_ == nullptr) {
+    throw TapProtoException(TapProtoException::DEFAULT_ERROR,
+                            "Invalid transport");
+  }
   auto resp = transport_->Send(msg);
   if (auto card_nonce = resp.find("card_nonce"); card_nonce != std::end(resp)) {
     card_nonce_ = *card_nonce;
@@ -111,13 +134,14 @@ std::string CKTapCard::NFC() {
 }
 
 std::string CKTapCard::CertificateCheck() {
-  auto verify_certs = [](const json& status_resp, const json& check_resp,
-                         const json& certs_resp, const Bytes& my_nonce) {
+  const auto verify_certs = [](const json& status_resp, const json& check_resp,
+                               const json& certs_resp, const Bytes& my_nonce) {
     const std::vector<json::binary_t> signatures = certs_resp["cert_chain"];
     const json::binary_t card_nonce = status_resp["card_nonce"];
     assert(signatures.size() >= 2);
 
     Bytes msg;
+    msg.reserve(std::size(OPENDIME) + card_nonce.size() + my_nonce.size());
     msg.insert(std::end(msg), std::begin(OPENDIME), std::end(OPENDIME));
     msg.insert(std::end(msg), std::begin(card_nonce), std::end(card_nonce));
     msg.insert(std::end(msg), std::begin(my_nonce), std::end(my_nonce));
@@ -153,14 +177,14 @@ std::string CKTapCard::CertificateCheck() {
   const json st = Status();
   const json certs = Send({{"cmd", "certs"}});
 
-  const auto nonce = PickNonce();
+  const auto nonce = json::binary_t(PickNonce());
   const json check = Send({
       {"cmd", "check"},
-      {"nonce", json::binary_t(nonce)},
+      {"nonce", nonce},
   });
 
   auto cert = verify_certs(st, check, certs, nonce);
-  certs_checked = true;
+  certs_checked_ = true;
   return cert;
 }
 
@@ -265,10 +289,7 @@ Bytes CKTapCard::Sign(const Bytes& digest, const std::string& cvc, int slot,
                           "Failed to sign digest after 5 retries. Try again.");
 }
 
-std::string CKTapCard::GetIdent() const noexcept {
-  return {std::begin(card_ident_), std::end(card_ident_)};
-}
-
+std::string CKTapCard::GetIdent() const noexcept { return card_ident_; }
 std::string CKTapCard::GetAppletVersion() const noexcept {
   return applet_version_;
 }
@@ -276,6 +297,8 @@ int CKTapCard::GetBirthHeight() const noexcept { return birth_height_; }
 bool CKTapCard::IsTestnet() const noexcept { return is_testnet_; }
 int CKTapCard::GetAuthDelay() const noexcept { return auth_delay_; }
 bool CKTapCard::IsTampered() const noexcept { return tampered_; }
+bool CKTapCard::IsCertsChecked() const noexcept { return certs_checked_; }
+bool CKTapCard::IsTapsigner() const noexcept { return is_tapsigner_; }
 
 void to_json(json& j, const CKTapCard::StatusResponse& t) {
   j = {

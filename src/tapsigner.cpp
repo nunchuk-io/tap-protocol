@@ -46,22 +46,13 @@ void from_json(const nlohmann::json& j, Tapsigner::ChangeResponse& t) {
 }
 
 Tapsigner::Tapsigner(std::unique_ptr<Transport> transport)
-    : CKTapCard(std::move(transport)) {
+    : CKTapCard(std::move(transport), false) {
   FirstLook();
 }
 
 int Tapsigner::GetNumberOfBackups() const noexcept { return number_of_backup_; }
 std::optional<std::string> Tapsigner::GetDerivationPath() const noexcept {
   return derivation_path_;
-}
-
-std::string Tapsigner::GetDerivation() {
-  const auto status = Status();
-  if (!status.path) {
-    throw TapProtoException(TapProtoException::NO_PRIVATE_KEY_PICKED,
-                            "No private key picked yet.");
-  }
-  return Path2Str(*status.path);
 }
 
 Tapsigner::DeriveResponse Tapsigner::Derive(const std::string& path,
@@ -81,6 +72,9 @@ Tapsigner::DeriveResponse Tapsigner::Derive(const std::string& path,
   };
 
   const auto [_, resp] = SendAuth(request, {std::begin(cvc), std::end(cvc)});
+  if (derivation_path_ != path) {
+    derivation_path_ = Path2Str(path_value);
+  }
   return resp;
 }
 
@@ -106,12 +100,8 @@ std::string Tapsigner::Xpub(const std::string& cvc, bool master) {
           {"master", master},
       },
       {std::begin(cvc), std::end(cvc)});
-  Bytes xpub = resp["xpub"].get<json::binary_t>();
-
-  Bytes double_hash_xpub = SHA256d(xpub);
-  xpub.insert(std::end(xpub), std::begin(double_hash_xpub),
-              std::begin(double_hash_xpub) + 4);
-  return EncodeBase58({xpub.data(), xpub.size()});
+  const Bytes xpub = resp["xpub"].get<json::binary_t>();
+  return EncodeBase58Check(xpub);
 }
 
 std::string Tapsigner::Pubkey(const std::string& cvc) {
@@ -120,6 +110,7 @@ std::string Tapsigner::Pubkey(const std::string& cvc) {
     const json::binary_t card_nonce = status["card_nonce"];
 
     Bytes msg;
+    msg.reserve(std::size(OPENDIME) + card_nonce.size() + nonce.size());
     msg.insert(std::end(msg), std::begin(OPENDIME), std::end(OPENDIME));
     msg.insert(std::end(msg), std::begin(card_nonce), std::end(card_nonce));
     msg.insert(std::end(msg), std::begin(nonce), std::end(nonce));
@@ -181,7 +172,6 @@ Tapsigner::BackupResponse Tapsigner::Backup(const std::string& cvc) {
 
 void Tapsigner::Update(const CKTapCard::StatusResponse& status) {
   CKTapCard::Update(status);
-  is_tapsigner_ = status.tapsigner;
   number_of_backup_ = status.num_backups;
   if (status.path) {
     derivation_path_ = Path2Str(*status.path);

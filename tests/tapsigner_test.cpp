@@ -14,6 +14,14 @@
 // $ ./ecard.py emulate -t
 // $ ./ecard.py emulate -t --no-init # fresh card
 
+TEST_SUITE_BEGIN("tapsigner" * doctest::skip([]() -> bool {
+                   std::unique_ptr<tap_protocol::Transport> tp =
+                       std::make_unique<CardEmulator>();
+                   tap_protocol::CKTapCard card(std::move(tp));
+                   return !card.IsTapsigner();
+                   ;
+                 }()));
+
 TEST_CASE("set up new card") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
@@ -55,20 +63,6 @@ TEST_CASE("test card identity") {
   CHECK(ident == emulatorCardIdent);
 }
 
-TEST_CASE("derive tapsigner") {
-  // Given card
-  std::unique_ptr<tap_protocol::Transport> tp =
-      std::make_unique<CardEmulator>();
-
-  tap_protocol::Tapsigner tapSigner(std::move(tp));
-  // When set derivation path
-  auto resp = tapSigner.Derive("m/", "123456");
-
-  // Then return a pubkey to this path
-  CHECK(!resp.pubkey.empty());
-  MESSAGE("derive (m/):", json(resp).dump(2));
-}
-
 TEST_CASE("test tapsigner derivation path") {
   // Given card
   std::unique_ptr<tap_protocol::Transport> tp =
@@ -77,14 +71,16 @@ TEST_CASE("test tapsigner derivation path") {
   tap_protocol::Tapsigner tapSigner(std::move(tp));
   tapSigner.Derive("m/", "123456");
 
-  std::string d = tapSigner.GetDerivation();
-  CHECK(d.empty());
+  auto d = tapSigner.GetDerivationPath();
+  CHECK(d == "m");
 
   tapSigner.Derive("m/84h", "123456");
-  d = tapSigner.GetDerivation();
-  CHECK(!d.empty());
+  d = tapSigner.GetDerivationPath();
+  CHECK(d == "m/84h");
 
-  MESSAGE("derivation path:", d);
+  tapSigner.Derive("m", "123456");
+  d = tapSigner.GetDerivationPath();
+  CHECK(d == "m");
 }
 
 TEST_CASE("string to path and reverse") {
@@ -144,16 +140,6 @@ TEST_CASE("get pubkey") {
   MESSAGE("pubkey:", pubkey);
 }
 
-TEST_CASE("binary string") {
-  std::string str = "nunchuk is awesome";
-  tap_protocol::Bytes toBytes(std::begin(str), std::end(str));
-  json::binary_t bin = toBytes;
-  tap_protocol::Bytes binToBytes = bin;
-  std::string bytesToStr{bin.data(), bin.data() + bin.size()};
-
-  CHECK(str == bytesToStr);
-}
-
 TEST_CASE("backup then change cvc") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
@@ -199,3 +185,5 @@ TEST_CASE("sign digest") {
   MESSAGE("digest:", tap_protocol::Bytes2Hex(digest));
   MESSAGE("signed digest:", tap_protocol::Bytes2Hex(resp));
 }
+
+TEST_SUITE_END();

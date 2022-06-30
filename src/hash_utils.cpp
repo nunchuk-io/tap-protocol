@@ -9,25 +9,19 @@ static constexpr int HASH160_LEN = 20;
 
 Bytes SHA256(const Bytes &data) {
   Bytes result(SHA256_LEN);
-  CSHA256 hasher;
-  hasher.Write(data.data(), data.size());
-  hasher.Finalize(result.data());
+  CSHA256().Write(data.data(), data.size()).Finalize(result.data());
   return result;
 }
 
 Bytes SHA256d(const Bytes &data) {
   Bytes result(SHA256_LEN);
-  CHash256 hasher;
-  hasher.Write(data);
-  hasher.Finalize(result);
+  CHash256().Write(data).Finalize(result);
   return result;
 }
 
 Bytes Hash160(const Bytes &data) {
   Bytes result(HASH160_LEN);
-  CHash160 hasher;
-  hasher.Write(data);
-  hasher.Finalize(result);
+  CHash160().Write(data).Finalize(result);
   return result;
 }
 

@@ -11,9 +11,20 @@
 
 namespace tap_protocol {
 
+class Tapsigner;
+class Satscard;
+class CKTapCard;
+
+std::unique_ptr<Tapsigner> ToTapsigner(CKTapCard&& cktapcard);
+std::unique_ptr<Satscard> ToSatscard(CKTapCard&& cktapcard);
+
 class CKTapCard {
  public:
-  explicit CKTapCard(std::unique_ptr<Transport> transport);
+  explicit CKTapCard(std::unique_ptr<Transport> transport,
+                     bool first_look = true);
+
+  friend std::unique_ptr<Tapsigner> ToTapsigner(CKTapCard&& cktapcard);
+  friend std::unique_ptr<Satscard> ToSatscard(CKTapCard&& cktapcard);
 
   struct StatusResponse {
     int proto{};
@@ -58,6 +69,8 @@ class CKTapCard {
   bool IsTestnet() const noexcept;
   int GetAuthDelay() const noexcept;
   bool IsTampered() const noexcept;
+  bool IsCertsChecked() const noexcept;
+  bool IsTapsigner() const noexcept;
 
   StatusResponse Status();
   std::string NFC();
@@ -69,12 +82,9 @@ class CKTapCard {
              const std::string& subpath = {});
 
  protected:
-  CKTapCard() = default;
   StatusResponse FirstLook();
   virtual void Update(const StatusResponse& status);
-
   std::unique_ptr<Transport> transport_;
-  bool certs_checked{};
 
  private:
   nlohmann::json::binary_t card_nonce_;
@@ -83,8 +93,10 @@ class CKTapCard {
   std::string applet_version_;
   int birth_height_{};
   bool is_testnet_{};
+  bool is_tapsigner_{};
   int auth_delay_{};
   bool tampered_{};
+  bool certs_checked_{};
 };
 
 class Tapsigner : public CKTapCard {
@@ -123,7 +135,6 @@ class Tapsigner : public CKTapCard {
   std::string GetXFP(const std::string& cvc);
   std::string Xpub(const std::string& cvc, bool master);
   std::string Pubkey(const std::string& cvc);
-  std::string GetDerivation();
   ChangeResponse Change(const std::string& new_cvc, const std::string& cvc);
   BackupResponse Backup(const std::string& cvc);
 
@@ -134,7 +145,6 @@ class Tapsigner : public CKTapCard {
   void Update(const StatusResponse& status) override;
 
  private:
-  bool is_tapsigner_{};
   int number_of_backup_{};
   std::optional<std::string> derivation_path_;
 };

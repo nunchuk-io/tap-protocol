@@ -7,9 +7,15 @@
 #include <fstream>
 #include <memory>
 
-auto cvc_callback = [](const std::string &msg) {
-  return std::string("123456");
-};
+TEST_SUITE_BEGIN("tapsigner" * doctest::skip([]() -> bool {
+                   std::unique_ptr<tap_protocol::Transport> tp =
+                       std::make_unique<CardEmulator>();
+                   tap_protocol::CKTapCard card(std::move(tp));
+                   return !card.IsTapsigner();
+                   ;
+                 }()));
+
+const std::string default_cvc = "123456";
 
 TEST_CASE("HWI Tapsigner test") {
   std::unique_ptr<tap_protocol::Transport> tp =
@@ -18,7 +24,7 @@ TEST_CASE("HWI Tapsigner test") {
   std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
       std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
 
-  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
   hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
 
   SUBCASE("master fingerprint") {
@@ -43,7 +49,7 @@ TEST_CASE("sign psbt multisig") {
   std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
       std::make_unique<tap_protocol::Tapsigner>(std::move(transport));
 
-  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
   hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
 
   auto signed_tx = hwi->SignTx(psbt);
@@ -59,7 +65,7 @@ TEST_CASE("sign psbt") {
   std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
       std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
 
-  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
   hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
 
   auto signed_tx = hwi->SignTx(psbt);
@@ -74,37 +80,9 @@ TEST_CASE("sign message") {
   std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
       std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
 
-  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
   auto sig = hwi->SignMessage("nunchuk", "m/84h/0/0");
   CHECK(!sig.empty());
-}
-
-TEST_CASE("get xpub at path") {
-  std::unique_ptr<tap_protocol::Transport> tp =
-      std::make_unique<CardEmulator>();
-
-  std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
-      std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
-
-  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
-  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
-  SUBCASE("m/") {
-    std::string res = hwi->GetXpubAtPath("m/");
-    MESSAGE("path m/: ", res);
-    CHECK(!res.empty());
-  }
-
-  SUBCASE("m/84h/0/0") {
-    std::string res = hwi->GetXpubAtPath("m/84h/0/0");
-    MESSAGE("path m/84h/0/0: ", res);
-    CHECK(!res.empty());
-  }
-
-  SUBCASE("m/44h") {
-    std::string res = hwi->GetXpubAtPath("m/44h");
-    MESSAGE("path m/44h: ", res);
-    CHECK(!res.empty());
-  }
 }
 
 TEST_CASE("decrypt backup") {
@@ -114,7 +92,7 @@ TEST_CASE("decrypt backup") {
   std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
       std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
 
-  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), cvc_callback);
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
   hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
 
   auto encrypted = tap_protocol::Hex2Bytes(
@@ -136,3 +114,64 @@ TEST_CASE("decrypt backup") {
   // MESSAGE("decrypted: ", decrypted_str);
   CHECK(decrypted_str == expected);
 }
+
+TEST_CASE("get xpub at path") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+
+  std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
+      std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
+
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
+  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
+
+  std::vector<std::string> ok = {
+      "m/84'/1'/0'",     "m/84'/0'/0'",        "m/84'/0'/0'/0/0",
+      "m/84'/1'/0'/1/0", "m/84'/1'/0'/1000/0", "m/84'/1'/0'/9999/9999/999/9999",
+  };
+
+  for (const std::string &path : ok) {
+    auto xpub = hwi->GetXpubAtPath(path);
+    CHECK(!xpub.empty());
+  }
+
+  std::vector<std::string> invalid = {
+      "m/84'/0'/0'/0/0'",
+      "m/84'/1'/0'/1/2147483648",
+  };
+
+  for (const std::string &path : invalid) {
+    CHECK_THROWS_AS({ auto xpub = hwi->GetXpubAtPath(path); },
+                    tap_protocol::TapProtoException);
+  }
+}
+
+TEST_CASE("get xpub at path") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+
+  std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
+      std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
+
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
+  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
+  SUBCASE("m/") {
+    std::string res = hwi->GetXpubAtPath("m/");
+    MESSAGE("path m/: ", res);
+    CHECK(!res.empty());
+  }
+
+  SUBCASE("m/84h/0/0") {
+    std::string res = hwi->GetXpubAtPath("m/84h/0/0");
+    MESSAGE("path m/84h/0/0: ", res);
+    CHECK(!res.empty());
+  }
+
+  SUBCASE("m/44h") {
+    std::string res = hwi->GetXpubAtPath("m/44h");
+    MESSAGE("path m/44h: ", res);
+    CHECK(!res.empty());
+  }
+}
+
+TEST_SUITE_END();

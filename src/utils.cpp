@@ -55,7 +55,10 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
 }
 
 std::string Path2Str(const std::vector<uint32_t> &path) {
-  std::string result = path.empty() ? "" : "m/";
+  if (path.empty()) {
+    return "m";
+  }
+  std::string result{"m/"};
   for (auto it = std::begin(path); it != std::end(path); ++it) {
     uint32_t c = (*it & ~HARDENED);
     result += std::to_string(c);
