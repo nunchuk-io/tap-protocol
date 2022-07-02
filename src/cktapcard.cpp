@@ -188,7 +188,11 @@ std::string CKTapCard::CertificateCheck() {
   return cert;
 }
 
-CKTapCard::WaitResponse CKTapCard::Wait() { return Send({{"cmd", "wait"}}); }
+CKTapCard::WaitResponse CKTapCard::Wait() {
+  WaitResponse wait = Send({{"cmd", "wait"}});
+  auth_delay_ = wait.auth_delay;
+  return wait;
+}
 
 CKTapCard::NewResponse CKTapCard::New(const Bytes& chain_code,
                                       const std::string& cvc, int slot) {
@@ -197,7 +201,6 @@ CKTapCard::NewResponse CKTapCard::New(const Bytes& chain_code,
     if (!wait.success) {
       throw TapProtoException(TapProtoException::DEFAULT_ERROR, "Wait error");
     }
-    auth_delay_ = wait.auth_delay;
   }
   const auto [_, resp] = SendAuth(
       {

@@ -37,7 +37,7 @@ TEST_CASE("random bytes") {
 
   CHECK(r1.size() == 32);
   CHECK(r2.size() == 128);
-  CHECK(r3.size() = 123);
-  CHECK(r1 != r2);
-  CHECK(r2 != r3);
+  CHECK(r3.size() == 123);
+  CHECK(!(r1 == r2));
+  CHECK(!(r2 == r3));
 }
