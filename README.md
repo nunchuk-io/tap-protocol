@@ -121,21 +121,28 @@ if (card.IsTapsigner()) {
     }
 
     if (slotInfo.status == Satscard::SlotStatus::SEALED) {
-        // slot address to deposit
+        // Slot address to deposit
         std::string address = slotInfo.address;
 
         // Sweep the func
         std::string cvc = "123456";
         auto unseal = satscard.Unseal(cvc);
         
-        // Get private key to this slot
+        // get private key to this slot
         Bytes privkey = unseal.privkey;
-        Bytes chain_code = unseal.chain_code;
         
+        // in WIF format
+        std::string wif = unseal.to_wif(satscard.IsTestnet());
     }
 
-
-
+    {
+      // Get all slots (no cvc => no privkey)
+      std::vector<Satscard::SlotInfo> slots = satscard.ListSlotInfos();
+    }
+    {
+      // Get all slots (cvc => privkey)
+      std::vector<Satscard::SlotInfo> slots = satscard.ListSlotInfos("123456");
+    }
 }
 
 ```
@@ -168,8 +175,6 @@ Android Intent that handle NFC event
     }
 
     public native void cardStatus(IsoDep card);
-
-
 ```
 
 JNI code
@@ -251,6 +256,7 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_cardStatus(JNIEnv *env, j
 
 ### Install emulator
 See [https://github.com/coinkite/coinkite-tap-proto/tree/master/emulator](https://github.com/coinkite/coinkite-tap-proto/tree/master/emulator)
+
 ### Build & run tests
 ```
 mkdir build

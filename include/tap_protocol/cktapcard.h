@@ -149,9 +149,6 @@ class Tapsigner : public CKTapCard {
   std::optional<std::string> derivation_path_;
 };
 
-// bitcoin-core CKey
-// struct CKey;
-
 class Satscard : public CKTapCard {
   using CKTapCard::CKTapCard;
 
@@ -176,10 +173,8 @@ class Satscard : public CKTapCard {
     json::binary_t master_pk;
     json::binary_t chain_code;
 
-    // WIF format
-    // std::string to_wif() const;
-    // bitcoin-core CKey
-    // CKey to_ckey() const;
+    // WIF format if privkey is present
+    std::string to_wif(bool testnet = false) const;
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(SlotInfo, slot, status, address, privkey,
                                    pubkey, master_pk, chain_code);

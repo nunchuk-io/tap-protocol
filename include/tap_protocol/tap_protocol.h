@@ -64,6 +64,7 @@ class TapProtoException : public std::exception {
   static constexpr int INVALID_ADDRESS_TYPE = 624;
   static constexpr int INVALID_BACKUP_KEY = 625;
   static constexpr int INVALID_PUBKEY = 626;
+  static constexpr int INVALID_PRIVKEY = 627;
 
  public:
   explicit TapProtoException(int code, std::string message)

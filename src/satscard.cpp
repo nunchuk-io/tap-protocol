@@ -1,3 +1,5 @@
+#include "base58.h"
+#include "support/cleanse.h"
 #include "util/strencodings.h"
 #include "tap_protocol/cktapcard.h"
 #include "tap_protocol/hash_utils.h"
@@ -64,6 +66,20 @@ static auto recover_address(const json& status, const json& read,
   return std::make_pair(pubkey, addr);
 };
 
+static std::string EncodeSecret(const Bytes& privkey, bool is_testnet) {
+  static constexpr unsigned char MAINNET_SECRET_KEY = 0x80;
+  static constexpr unsigned char TESTNET_SECRET_KEY = 0xef;
+
+  std::vector<unsigned char> data{is_testnet ? TESTNET_SECRET_KEY
+                                             : MAINNET_SECRET_KEY};
+  data.insert(std::end(data), std::begin(privkey), std::end(privkey));
+  data.push_back(0x1);
+
+  std::string ret = EncodeBase58Check(data);
+  memory_cleanse(data.data(), data.size());
+  return ret;
+}
+
 static auto verify_master_pubkey(const Bytes& pub, const Bytes& sig,
                                  const Bytes& chain_code, const Bytes& my_nonce,
                                  const Bytes& card_nonce) {
@@ -87,6 +103,14 @@ static auto verify_master_pubkey(const Bytes& pub, const Bytes& sig,
   }
   return pub;
 };
+
+std::string Satscard::SlotInfo::to_wif(bool testnet) const {
+  if (privkey.size() != 32) {
+    throw TapProtoException(TapProtoException::INVALID_PRIVKEY,
+                            "Empty or invalid privkey length");
+  }
+  return EncodeSecret(privkey, testnet);
+}
 
 Satscard::Satscard(std::unique_ptr<Transport> transport)
     : CKTapCard(std::move(transport), false) {

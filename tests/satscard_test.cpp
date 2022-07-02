@@ -157,4 +157,39 @@ TEST_CASE("return same pk for unseal slot") {
   }
 }
 
+TEST_CASE("show wif") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+  tap_protocol::Satscard satscard(std::move(tp));
+
+  auto infos = satscard.ListSlotInfos("123456");
+
+  for (auto &info : infos) {
+    if (info.status == tap_protocol::Satscard::SlotStatus::UNSEALED) {
+      auto wif = info.to_wif(satscard.IsTestnet());
+      MESSAGE("wif:", wif);
+      CHECK(!wif.empty());
+    }
+  }
+}
+
+TEST_CASE("invalid cvc") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+  tap_protocol::Satscard satscard(std::move(tp));
+
+  try {
+    satscard.GetSlotInfo(0, "654321");
+    satscard.GetSlotInfo(0, "654321");
+    satscard.GetSlotInfo(0, "654321");
+  } catch (tap_protocol::TapProtoException &te) {
+    MESSAGE("invalid cvc msg: ", te.what());
+    CHECK(te.code() == tap_protocol::TapProtoException::BAD_AUTH);
+  }
+
+  MESSAGE("delay: ", satscard.GetAuthDelay());
+  auto info = satscard.GetSlotInfo(0, "123456");
+  MESSAGE("info: ", json(info).dump(2));
+}
+
 TEST_SUITE_END();
