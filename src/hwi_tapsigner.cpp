@@ -472,8 +472,8 @@ Bytes HWITapsignerImpl::BackupDevice() {
   return resp.data;
 }
 
-Bytes HWITapsignerImpl::DecryptBackup(const Bytes &encrypted_data,
-                                      const std::string &backup_key) {
+std::string HWITapsignerImpl::DecryptBackup(const Bytes &encrypted_data,
+                                            const std::string &backup_key) {
   static constexpr unsigned char xprv[] = {'x', 'p', 'r', 'v'};
   static constexpr unsigned char tprv[] = {'t', 'p', 'r', 'v'};
 
@@ -482,7 +482,7 @@ Bytes HWITapsignerImpl::DecryptBackup(const Bytes &encrypted_data,
 
   if (std::equal(std::begin(xprv), std::end(xprv), std::begin(decrypted)) ||
       std::equal(std::begin(tprv), std::end(tprv), std::begin(decrypted))) {
-    return decrypted;
+    return {std::begin(decrypted), std::end(decrypted)};
   }
   throw TapProtoException(TapProtoException::INVALID_BACKUP_KEY,
                           "Invalid backup key");

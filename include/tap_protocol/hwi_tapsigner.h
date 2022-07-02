@@ -43,8 +43,8 @@ class HWITapsigner {
   virtual std::string GetXpubAtPath(const std::string &derivation_path) = 0;
   virtual bool SetupDevice(const std::string &chain_code = {}) = 0;
   virtual Bytes BackupDevice() = 0;
-  virtual Bytes DecryptBackup(const Bytes &encrypted_data,
-                              const std::string &backup_key) = 0;
+  virtual std::string DecryptBackup(const Bytes &encrypted_data,
+                                    const std::string &backup_key) = 0;
   virtual ~HWITapsigner() = default;
 };
 
@@ -64,8 +64,8 @@ class HWITapsignerImpl : public HWITapsigner {
   std::string GetXpubAtPath(const std::string &path) override;
   bool SetupDevice(const std::string &chain_code = {}) override;
   Bytes BackupDevice() override;
-  Bytes DecryptBackup(const Bytes &encrypted_data,
-                      const std::string &backup_key) override;
+  std::string DecryptBackup(const Bytes &encrypted_data,
+                            const std::string &backup_key) override;
   ~HWITapsignerImpl() override = default;
 
  private:

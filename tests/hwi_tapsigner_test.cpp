@@ -106,13 +106,12 @@ TEST_CASE("decrypt backup") {
   auto decrypted =
       hwi->DecryptBackup({std::begin(encrypted), std::end(encrypted)},
                          {std::begin(backup_key), std::end(backup_key)});
-  std::string decrypted_str(std::begin(decrypted), std::end(decrypted));
   std::string expected =
       "tprv8ZgxMBicQKsPctUGYBjd5XBMn4TzcyFiuccf88VtCKaFUZend1nCDkmqPsNmhjMMehX7"
       "5AdbvPzqkQEF2S2zjGvjnCGT8g13WBmaL3nm7op\nm/44h\n";
 
   // MESSAGE("decrypted: ", decrypted_str);
-  CHECK(decrypted_str == expected);
+  CHECK(decrypted == expected);
 }
 
 TEST_CASE("get xpub at path") {
