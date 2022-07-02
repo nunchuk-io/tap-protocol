@@ -33,13 +33,11 @@ TEST_CASE("CT_ecdh") {
 TEST_CASE("random bytes") {
   auto r1 = tap_protocol::RandomBytes(32);
   auto r2 = tap_protocol::RandomBytes(128);
-  auto r3 = tap_protocol::RandomBytes(128);
+  auto r3 = tap_protocol::RandomBytes(123);
 
   CHECK(r1.size() == 32);
   CHECK(r2.size() == 128);
+  CHECK(r3.size() = 123);
   CHECK(r1 != r2);
   CHECK(r2 != r3);
-
-  std::sort(std::begin(r3), std::end(r3));
-  r3.erase(std::unique(std::begin(r3), std::end(r3)), std::end(r3));
 }
