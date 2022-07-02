@@ -126,7 +126,21 @@ std::vector<uint32_t> Str2Path(const std::string &path) {
   return result;
 }
 
-// TODO: secure rand?
+Bytes PickNonce() { return RandomBytes(USER_NONCE_SIZE); }
+
+#ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
+Bytes RandomBytes(size_t size) {
+  Bytes result(size);
+  // bitcoin can only generate up to 32 bytes
+  for (size_t cur = 0, left = size; left > 0;) {
+    int len = left >= 32 ? 32 : left;
+    ::GetRandBytes(result.data() + cur, len);
+    cur += len;
+    left -= len;
+  }
+  return result;
+}
+#else
 using random_bytes_engine =
     std::independent_bits_engine<std::default_random_engine, CHAR_BIT,
                                  unsigned char>;
@@ -137,7 +151,6 @@ Bytes RandomBytes(size_t size) {
   std::generate(std::begin(result), std::end(result), std::ref(rbe));
   return result;
 }
-
-Bytes PickNonce() { return RandomBytes(USER_NONCE_SIZE); }
+#endif
 
 }  // namespace tap_protocol

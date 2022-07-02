@@ -5,6 +5,11 @@
 #include "tap_protocol/secp256k1_utils.h"
 #include "nlohmann/json.hpp"
 
+#ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
+void GetStrongRandBytes(unsigned char *buf, int num) noexcept;
+void GetRandBytes(unsigned char *buf, int num) noexcept;
+#endif
+
 namespace tap_protocol {
 
 std::string Bytes2Hex(const Bytes &msg);
