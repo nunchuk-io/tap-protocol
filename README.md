@@ -84,7 +84,7 @@ std::string signed_tx = hwi->SignTx(base64_psbt);
 
 SATSCARD
 
-```
+``` c++
 
 // First create a transport that sends bytes to device
 auto transport = MakeDefaultTransport([](const Bytes& bytes) {
@@ -118,10 +118,8 @@ if (card.IsTapsigner()) {
         
         // slot address
         std::string address = resp.address;
-    }
-
-    if (slotInfo.status == Satscard::SlotStatus::SEALED) {
-        // Slot address to deposit
+    } else if (slotInfo.status == Satscard::SlotStatus::SEALED) {
+        // Current slot is sealed we can deposit to this address
         std::string address = slotInfo.address;
 
         // Sweep the func
