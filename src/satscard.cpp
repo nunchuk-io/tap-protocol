@@ -5,32 +5,18 @@
 #include "bech32.h"
 
 namespace tap_protocol {
-void to_json(nlohmann::json& j, const Satscard::UnsealResponse& t) {
-  j = {
-      {"slot", t.slot},
-      {"privkey", t.privkey},
-      {"pubkey", t.pubkey},
-      {"master_pk", t.master_pk},
-      {"chain_code", t.chain_code},
-      {"card_nonce", t.card_nonce},
-  };
-}
-void from_json(const nlohmann::json& j, Satscard::UnsealResponse& t) {
-  t.slot = j.value("slot", t.slot);
-  t.privkey = j.value("privkey", t.privkey);
-  t.pubkey = j.value("pubkey", t.pubkey);
-  t.master_pk = j.value("master_pk", t.master_pk);
-  t.chain_code = j.value("chain_code", t.chain_code);
-  t.card_nonce = j.value("card_nonce", t.card_nonce);
-}
 
 static std::string render_address(const Bytes& pubkey, bool testnet = false) {
   const Bytes witprog =
       Hash160(pubkey.size() == 32 ? CT_priv_to_pubkey(pubkey) : pubkey);
   Bytes input{0};
+  input.reserve(1 + witprog.size() * 8 / 5);
   bool ret = ConvertBits<8, 5, true>([&](int v) { input.push_back(v); },
                                      std::begin(witprog), std::end(witprog));
-  assert(ret);
+  if (!ret) {
+    throw TapProtoException(TapProtoException::DEFAULT_ERROR,
+                            "Render address error");
+  }
 
   return bech32::Encode(bech32::Encoding::BECH32, testnet ? "tb" : "bc", input);
 }
@@ -69,9 +55,9 @@ static auto recover_address(const json& status, const json& read,
       render_address(pubkey, status.value("testnet", false));
   static constexpr int ADDR_TRIM = 12;
 
-  if (!(addr.find(left) != std::string::npos &&
-        addr.find(right) != std::string::npos && left.size() == right.size() &&
-        left.size() == ADDR_TRIM)) {
+  if (!(left.size() == right.size() && left.size() == ADDR_TRIM &&
+        addr.find(left) != std::string::npos &&
+        addr.find(right) != std::string::npos)) {
     throw TapProtoException(TapProtoException::DEFAULT_ERROR,
                             "Corrupt response");
   }
@@ -104,16 +90,51 @@ static auto verify_master_pubkey(const Bytes& pub, const Bytes& sig,
 
 Satscard::Satscard(std::unique_ptr<Transport> transport)
     : CKTapCard(std::move(transport), false) {
-  FirstLook();
+  auto st = FirstLook();
+  // TODO(giahuy): Should check certs here?
+
+  if (GetActiveSlotStatus() == SlotStatus::SEALED) {
+    RenderActiveSlotAddress(st);
+  }
+}
+
+void Satscard::RenderActiveSlotAddress(const StatusResponse& status) {
+  if (status.addr.empty()) {
+    address_.clear();
+    render_address_.clear();
+    return;
+  }
+  const auto nonce = json::binary_t(PickNonce());
+  const auto read = Send({
+      {"cmd", "read"},
+      {"nonce", nonce},
+  });
+  auto [pubkey, addr] = recover_address(status, read, nonce);
+  render_address_ = addr;
+
+  return;
+  // TODO(giahuy): Implement additional check
+  const Bytes my_nonce = json::binary_t(PickNonce());
+  const Bytes card_nonce = read["card_nonce"].get<json::binary_t>();
+  const json derive = Send({
+      {"cmd", "derive"},
+      {"nonce", my_nonce},
+  });
+
+  const Bytes master_pub = verify_master_pubkey(
+      derive["master_pubkey"].get<json::binary_t>(),
+      derive["sig"].get<json::binary_t>(),
+      derive["chain_code"].get<json::binary_t>(), my_nonce, card_nonce);
 }
 
 void Satscard::Update(const CKTapCard::StatusResponse& status) {
   CKTapCard::Update(status);
   active_slot_ = status.slots[0];
   num_slots_ = status.slots[1];
+  address_ = status.addr;
 }
 
-Satscard::UnsealResponse Satscard::Unseal(const std::string& cvc) {
+Satscard::SlotInfo Satscard::Unseal(const std::string& cvc) {
   int target = active_slot_;
   const auto dump = Send({
       {"cmd", "dump"},
@@ -134,13 +155,28 @@ Satscard::UnsealResponse Satscard::Unseal(const std::string& cvc) {
           {"slot", target},
       },
       {std::begin(cvc), std::end(cvc)});
-  auto result = UnsealResponse(resp);
-  result.privkey = XORBytes(session_key, result.privkey);
+
+  auto result = SlotInfo{
+      .slot = resp["slot"],
+      .status = SlotStatus::UNSEALED,
+      .address = render_address_,
+      .privkey = XORBytes(resp["privkey"].get<json::binary_t>(), session_key),
+      .pubkey = resp["pubkey"],
+      .master_pk =
+          XORBytes(resp["master_pk"].get<json::binary_t>(), session_key),
+      .chain_code = resp["chain_code"],
+  };
+
+  // move to next slot 'unused' or used up
+  active_slot_ = resp["slot"].get<int>() + 1;
+  // also clear address
+  RenderActiveSlotAddress({});
+
   return result;
 }
 
-Satscard::NewResponse Satscard::New(const Bytes& chain_code,
-                                    const std::string& cvc) {
+Satscard::SlotInfo Satscard::New(const Bytes& chain_code,
+                                 const std::string& cvc) {
   int target = active_slot_;
 
   const auto dump = Send({
@@ -153,54 +189,104 @@ Satscard::NewResponse Satscard::New(const Bytes& chain_code,
         "Slot has been used already. Unseal it, and move to next");
   }
   auto resp = CKTapCard::New(chain_code, cvc, target);
+  RenderActiveSlotAddress(Status());
   active_slot_ = resp.slot;
-  return resp;
+  return GetActiveSlotInfo();
 }
 
-std::string Satscard::Address(bool faster, int slot) {
-  if (!IsCertsChecked() && !faster) {
-    CertificateCheck();
+Satscard::SlotInfo Satscard::GetSlotInfo(int slot, const std::string& cvc) {
+  if (slot >= num_slots_) {
+    throw TapProtoException(TapProtoException::BAD_ARGUMENTS, "Invalid slot");
   }
-  const auto st = Status();
-  int cur_slot = st.slots[0];
-  if (st.addr.empty() && cur_slot == slot) {
-    return {};
+
+  if (slot > active_slot_) {
+    return SlotInfo{
+        .slot = slot,
+        .status = SlotStatus::UNUSED,
+    };
   }
-  if (slot > cur_slot) {
-    return {};
+
+  if (slot == active_slot_) {
+    return GetActiveSlotInfo();
   }
-  if (slot != cur_slot) {
-    const auto dump = Send({
+
+  // all slots < active_slot are unsealed
+  if (cvc.empty()) {
+    auto dump = Send({
         {"cmd", "dump"},
         {"slot", slot},
     });
-    return dump["addr"];
-  }
-  const auto nonce = json::binary_t(PickNonce());
-  const auto read = Send({
-      {"cmd", "read"},
-      {"nonce", nonce},
-  });
-
-  auto [pubkey, addr] = recover_address(st, read, nonce);
-
-  if (faster) {
-    return addr;
+    return SlotInfo{
+        .slot = dump["slot"],
+        .status = SlotStatus::UNSEALED,
+        .address = std::move(dump["addr"]),
+    };
   }
 
-  // TODO(giahuy): Implement additional check
-  const Bytes my_nonce = json::binary_t(PickNonce());
-  const Bytes card_nonce = read["card_nonce"].get<json::binary_t>();
-  const json derive = Send({
-      {"cmd", "derive"},
-      {"nonce", my_nonce},
-  });
+  auto [session_key, dump] = SendAuth(
+      {
+          {"cmd", "dump"},
+          {"slot", slot},
+      },
+      {std::begin(cvc), std::end(cvc)});
 
-  const Bytes master_pub = verify_master_pubkey(
-      derive["master_pubkey"].get<json::binary_t>(),
-      derive["sig"].get<json::binary_t>(),
-      derive["chain_code"].get<json::binary_t>(), my_nonce, card_nonce);
-
-  return {};
+  return SlotInfo{
+      .slot = dump["slot"],
+      .status = SlotStatus::UNSEALED,
+      .address =
+          render_address(dump["pubkey"].get<json::binary_t>(), IsTestnet()),
+      .privkey = XORBytes(dump["privkey"].get<json::binary_t>(), session_key),
+      .pubkey = dump["pubkey"].get<json::binary_t>(),
+      .master_pk =
+          XORBytes(dump["master_pk"].get<json::binary_t>(), session_key),
+      .chain_code = dump["chain_code"],
+  };
 }
+
+std::vector<Satscard::SlotInfo> Satscard::ListSlotInfos(const std::string& cvc,
+                                                        size_t limit) {
+  std::vector<Satscard::SlotInfo> result;
+  result.reserve(limit);
+
+  for (size_t slot = 0; slot < limit; ++slot) {
+    result.push_back(GetSlotInfo(slot, cvc));
+  }
+
+  return result;
+}
+
+Satscard::SlotInfo Satscard::GetActiveSlotInfo() const noexcept {
+  return SlotInfo{
+      .slot = active_slot_,
+      .status = GetActiveSlotStatus(),
+      .address = render_address_,
+  };
+}
+
+int Satscard::GetNumSlots() const noexcept { return num_slots_; }
+int Satscard::GetActiveSlot() const noexcept { return active_slot_; }
+
+Satscard::SlotStatus Satscard::GetActiveSlotStatus() const noexcept {
+  if (active_slot_ == num_slots_) {
+    return SlotStatus::USED_UP;
+  }
+
+  if (address_.empty()) {
+    return SlotStatus::UNUSED;
+  }
+
+  return SlotStatus::SEALED;
+}
+
+bool Satscard::HasUnusedSlots() const noexcept {
+  return (GetActiveSlotStatus() == SlotStatus::UNUSED) ||
+         (active_slot_ + 1 < num_slots_);
+}
+
+bool Satscard::IsUsedUp() const noexcept {
+  return (active_slot_ == num_slots_) ||
+         (active_slot_ == num_slots_ - 1 &&
+          GetActiveSlotStatus() != SlotStatus::UNUSED);
+}
+
 }  // namespace tap_protocol

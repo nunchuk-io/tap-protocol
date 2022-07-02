@@ -45,7 +45,7 @@ auto transport = MakeDefaultTransport([](const Bytes& bytes) {
 });
 
 // Create a Tapsigner using transport
-std::unique_ptr<Tapsigner> tapsigner(std::make_unique<Tapsigner>(std::move(transport)));
+auto tapsigner = std::make_unique<Tapsigner>(std::move(transport));
 // or simply: 
 // Tapsigner tapsigner(std::move(transport));
 
@@ -64,11 +64,7 @@ Alternative, we can use Tapsigner HWI interface
 ``` c++
 
 
-// We can pass a call back to get cvc every time
-auto hwi = MakeHWITapsigner(tapsigner.get(), [](const std::string &msg) {
-  return std::string("123456");
-};);
-// or directly provide cvc:
+// Create HWI-like interface
 // auto hwi = MakeHWITapsigner(tapsigner.get(), "123456");
 
 // Setup new card
@@ -83,6 +79,64 @@ std::string signed_message = hwi->SignMessage("nunchuk", "m/84h/0h/0h");
 // Sign transaction
 std::string base64_psbt = "...";
 std::string signed_tx = hwi->SignTx(base64_psbt);
+
+```
+
+SATSCARD
+
+```
+
+// First create a transport that sends bytes to device
+auto transport = MakeDefaultTransport([](const Bytes& bytes) {
+    // see how to send bytes to NFC card for Android or iOS below 
+});
+
+
+// Check if card is SATSCARD or TAPSIGNER
+CKTapCard card(std::move(tp));
+
+if (card.IsTapsigner()) {
+    auto tapsigner = ToTapsigner(std::move(card));
+    // Do command with tapsigner
+} else {
+    auto satscard = ToSatscard(std::move(card));
+
+    bool is_used_up = satscard.IsUsedUp();
+    if (is_used_up) {
+      // Card is used up
+      return;
+    }
+
+    // Current card active slot
+    auto slotInfo = satscard.GetActiveSlotInfo();
+
+    // Setup new slot
+    if (slotInfo.status == Satscard::SlotStatus::UNUSED) {
+        Bytes chain_code = SHA256d(RandomBytes(128)); // generate random chain code
+        std::string cvc = "123456";
+        auto resp = satscard.New(chain_code, cvc);
+        
+        // slot address
+        std::string address = resp.address;
+    }
+
+    if (slotInfo.status == Satscard::SlotStatus::SEALED) {
+        // slot address to deposit
+        std::string address = slotInfo.address;
+
+        // Sweep the func
+        std::string cvc = "123456";
+        auto unseal = satscard.Unseal(cvc);
+        
+        // Get private key to this slot
+        Bytes privkey = unseal.privkey;
+        Bytes chain_code = unseal.chain_code;
+        
+    }
+
+
+
+}
 
 ```
 

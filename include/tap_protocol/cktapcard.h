@@ -149,34 +149,75 @@ class Tapsigner : public CKTapCard {
   std::optional<std::string> derivation_path_;
 };
 
+// bitcoin-core CKey
+// struct CKey;
+
 class Satscard : public CKTapCard {
   using CKTapCard::CKTapCard;
 
  public:
   explicit Satscard(std::unique_ptr<Transport> transport);
 
-  struct UnsealResponse {
+  enum class SlotStatus {
+    UNUSED,
+    SEALED,
+    UNSEALED,
+    USED_UP,
+  };
+
+  struct SlotInfo {
     int slot{};
+    SlotStatus status;
+    std::string address{};
+
+    // cvc provide && unsealed slot
     json::binary_t privkey;
     json::binary_t pubkey;
     json::binary_t master_pk;
     json::binary_t chain_code;
-    json::binary_t card_nonce;
 
-    friend void to_json(nlohmann::json& j, const UnsealResponse& t);
-    friend void from_json(const nlohmann::json& j, UnsealResponse& t);
+    // WIF format
+    // std::string to_wif() const;
+    // bitcoin-core CKey
+    // CKey to_ckey() const;
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SlotInfo, slot, status, address, privkey,
+                                   pubkey, master_pk, chain_code);
+
+    bool operator==(const SlotInfo& other) const {
+      return slot == other.slot && status == other.status &&
+             address == other.address && privkey == other.privkey &&
+             pubkey == other.pubkey && master_pk == other.pubkey &&
+             chain_code == other.chain_code;
+    }
   };
 
-  UnsealResponse Unseal(const std::string& cvc);
-  NewResponse New(const Bytes& chain_code, const std::string& cvc);
-  std::string Address(bool faster = false, int slot = 0);
+  SlotInfo Unseal(const std::string& cvc);
+  SlotInfo New(const Bytes& chain_code, const std::string& cvc);
+
+  SlotInfo GetSlotInfo(int slot, const std::string& cvc = {});
+  std::vector<SlotInfo> ListSlotInfos(const std::string& cvc = {},
+                                      size_t limit = 10);
+
+  SlotInfo GetActiveSlotInfo() const noexcept;
+  int GetActiveSlot() const noexcept;
+  int GetNumSlots() const noexcept;
+  bool HasUnusedSlots() const noexcept;
+  bool IsUsedUp() const noexcept;
 
  protected:
   void Update(const StatusResponse& status) override;
 
  private:
+  void RenderActiveSlotAddress(const StatusResponse& status);
+  SlotStatus GetActiveSlotStatus() const noexcept;
+
   int active_slot_ = 0;
   int num_slots_ = 1;
+  // address_ : return `addr` from status cmd
+  std::string address_;
+  // render_address_ : active slot full address
+  std::string render_address_;
 };
 
 }  // namespace tap_protocol

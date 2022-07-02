@@ -20,25 +20,24 @@ TEST_CASE("status emulator") {
 }
 
 TEST_CASE("get nfc url") {
-  // Given card
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
 
   tap_protocol::CKTapCard card(std::move(tp));
 
-  // When call 'nfc'
-  auto resp = card.NFC();
-
   MESSAGE("Is tapsigner: ", card.IsTapsigner());
   if (card.IsTapsigner()) {
+    auto resp = card.NFC();
     std::string tapsigner_url = "https://tapsigner.com";
     CHECK(resp.substr(0, tapsigner_url.size()) == tapsigner_url);
   } else {
-    const std::string satscard_url = "https://getsatscard.com";
-    CHECK(resp.substr(0, satscard_url.size()) == satscard_url);
+    auto satscard = tap_protocol::ToSatscard(std::move(card));
+    if (!satscard->IsUsedUp()) {
+      auto resp = satscard->NFC();
+      const std::string satscard_url = "https://getsatscard.com";
+      CHECK(resp.substr(0, satscard_url.size()) == satscard_url);
+    }
   }
-
-  MESSAGE("card nfc url: ", resp);
 }
 
 TEST_CASE("type of card") {
