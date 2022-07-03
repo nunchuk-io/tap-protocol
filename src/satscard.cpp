@@ -106,7 +106,7 @@ static auto verify_master_pubkey(const Bytes& pub, const Bytes& sig,
   return pub;
 };
 
-std::string Satscard::SlotInfo::to_wif(bool testnet) const {
+std::string Satscard::Slot::to_wif(bool testnet) const {
   if (privkey.size() != 32) {
     throw TapProtoException(TapProtoException::INVALID_PRIVKEY,
                             "Empty or invalid privkey length");
@@ -160,7 +160,7 @@ void Satscard::Update(const CKTapCard::StatusResponse& status) {
   address_ = status.addr;
 }
 
-Satscard::SlotInfo Satscard::Unseal(const std::string& cvc) {
+Satscard::Slot Satscard::Unseal(const std::string& cvc) {
   int target = active_slot_;
   const auto dump = Send({
       {"cmd", "dump"},
@@ -182,7 +182,7 @@ Satscard::SlotInfo Satscard::Unseal(const std::string& cvc) {
       },
       {std::begin(cvc), std::end(cvc)});
 
-  auto result = SlotInfo{
+  auto result = Slot{
       resp["slot"],
       SlotStatus::UNSEALED,
       render_address_,
@@ -200,8 +200,7 @@ Satscard::SlotInfo Satscard::Unseal(const std::string& cvc) {
   return result;
 }
 
-Satscard::SlotInfo Satscard::New(const Bytes& chain_code,
-                                 const std::string& cvc) {
+Satscard::Slot Satscard::New(const Bytes& chain_code, const std::string& cvc) {
   int target = active_slot_;
 
   const auto dump = Send({
@@ -216,23 +215,23 @@ Satscard::SlotInfo Satscard::New(const Bytes& chain_code,
   auto resp = CKTapCard::New(chain_code, cvc, target);
   RenderActiveSlotAddress(Status());
   active_slot_ = resp.slot;
-  return GetActiveSlotInfo();
+  return GetActiveSlot();
 }
 
-Satscard::SlotInfo Satscard::GetSlotInfo(int slot, const std::string& cvc) {
+Satscard::Slot Satscard::GetSlot(int slot, const std::string& cvc) {
   if (slot >= num_slots_) {
     throw TapProtoException(TapProtoException::BAD_ARGUMENTS, "Invalid slot");
   }
 
   if (slot > active_slot_) {
-    return SlotInfo{
+    return Slot{
         slot,
         SlotStatus::UNUSED,
     };
   }
 
   if (slot == active_slot_) {
-    return GetActiveSlotInfo();
+    return GetActiveSlot();
   }
 
   if (cvc.empty()) {
@@ -241,7 +240,7 @@ Satscard::SlotInfo Satscard::GetSlotInfo(int slot, const std::string& cvc) {
         {"cmd", "dump"},
         {"slot", slot},
     });
-    return SlotInfo{
+    return Slot{
         dump["slot"],
         SlotStatus::UNSEALED,
         std::move(dump["addr"]),
@@ -255,7 +254,7 @@ Satscard::SlotInfo Satscard::GetSlotInfo(int slot, const std::string& cvc) {
       },
       {std::begin(cvc), std::end(cvc)});
 
-  return SlotInfo{
+  return Slot{
       dump["slot"],
       SlotStatus::UNSEALED,
       render_address(dump["pubkey"].get<json::binary_t>(), IsTestnet()),
@@ -266,20 +265,20 @@ Satscard::SlotInfo Satscard::GetSlotInfo(int slot, const std::string& cvc) {
   };
 }
 
-std::vector<Satscard::SlotInfo> Satscard::ListSlotInfos(const std::string& cvc,
-                                                        size_t limit) {
-  std::vector<Satscard::SlotInfo> result;
+std::vector<Satscard::Slot> Satscard::ListSlots(const std::string& cvc,
+                                                size_t limit) {
+  std::vector<Satscard::Slot> result;
   result.reserve(limit);
 
   for (size_t slot = 0; slot < limit; ++slot) {
-    result.push_back(GetSlotInfo(slot, cvc));
+    result.push_back(GetSlot(slot, cvc));
   }
 
   return result;
 }
 
-Satscard::SlotInfo Satscard::GetActiveSlotInfo() const noexcept {
-  return SlotInfo{
+Satscard::Slot Satscard::GetActiveSlot() const noexcept {
+  return Slot{
       active_slot_,
       GetActiveSlotStatus(),
       render_address_,
@@ -287,7 +286,7 @@ Satscard::SlotInfo Satscard::GetActiveSlotInfo() const noexcept {
 }
 
 int Satscard::GetNumSlots() const noexcept { return num_slots_; }
-int Satscard::GetActiveSlot() const noexcept { return active_slot_; }
+int Satscard::GetActiveSlotIndex() const noexcept { return active_slot_; }
 
 Satscard::SlotStatus Satscard::GetActiveSlotStatus() const noexcept {
   if (active_slot_ == num_slots_) {

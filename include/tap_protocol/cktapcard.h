@@ -162,8 +162,8 @@ class Satscard : public CKTapCard {
     USED_UP,
   };
 
-  struct SlotInfo {
-    int slot{};
+  struct Slot {
+    int index{};
     SlotStatus status;
     std::string address{};
 
@@ -176,26 +176,25 @@ class Satscard : public CKTapCard {
     // WIF format if privkey is present
     std::string to_wif(bool testnet = false) const;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SlotInfo, slot, status, address, privkey,
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Slot, index, status, address, privkey,
                                    pubkey, master_pk, chain_code);
 
-    bool operator==(const SlotInfo& other) const {
-      return slot == other.slot && status == other.status &&
+    bool operator==(const Slot& other) const {
+      return index == other.index && status == other.status &&
              address == other.address && privkey == other.privkey &&
              pubkey == other.pubkey && master_pk == other.pubkey &&
              chain_code == other.chain_code;
     }
   };
 
-  SlotInfo Unseal(const std::string& cvc);
-  SlotInfo New(const Bytes& chain_code, const std::string& cvc);
+  Slot Unseal(const std::string& cvc);
+  Slot New(const Bytes& chain_code, const std::string& cvc);
 
-  SlotInfo GetSlotInfo(int slot, const std::string& cvc = {});
-  std::vector<SlotInfo> ListSlotInfos(const std::string& cvc = {},
-                                      size_t limit = 10);
+  Slot GetSlot(int slot, const std::string& cvc = {});
+  std::vector<Slot> ListSlots(const std::string& cvc = {}, size_t limit = 10);
 
-  SlotInfo GetActiveSlotInfo() const noexcept;
-  int GetActiveSlot() const noexcept;
+  Slot GetActiveSlot() const noexcept;
+  int GetActiveSlotIndex() const noexcept;
   int GetNumSlots() const noexcept;
   bool HasUnusedSlots() const noexcept;
   bool IsUsedUp() const noexcept;

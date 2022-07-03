@@ -108,19 +108,19 @@ if (card.IsTapsigner()) {
     }
 
     // Current card active slot
-    auto slotInfo = satscard.GetActiveSlotInfo();
+    auto slot = satscard.GetActiveSlot();
 
     // Setup new slot
-    if (slotInfo.status == Satscard::SlotStatus::UNUSED) {
+    if (slot.status == Satscard::SlotStatus::UNUSED) {
         Bytes chain_code = SHA256d(RandomBytes(128)); // generate random chain code
         std::string cvc = "123456";
         auto resp = satscard.New(chain_code, cvc);
         
         // slot address
         std::string address = resp.address;
-    } else if (slotInfo.status == Satscard::SlotStatus::SEALED) {
+    } else if (slot.status == Satscard::SlotStatus::SEALED) {
         // Current slot is sealed we can deposit to this address
-        std::string address = slotInfo.address;
+        std::string address = slot.address;
 
         // Sweep the func
         std::string cvc = "123456";
@@ -135,11 +135,11 @@ if (card.IsTapsigner()) {
 
     {
       // Get all slots (no cvc => no privkey)
-      std::vector<Satscard::SlotInfo> slots = satscard.ListSlotInfos();
+      std::vector<Satscard::Slot> slots = satscard.ListSlots();
     }
     {
       // Get all slots (cvc => privkey)
-      std::vector<Satscard::SlotInfo> slots = satscard.ListSlotInfos("123456");
+      std::vector<Satscard::Slot> slots = satscard.ListSlots("123456");
     }
 }
 
