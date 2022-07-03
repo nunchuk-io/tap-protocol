@@ -177,4 +177,8 @@ void Tapsigner::Update(const CKTapCard::StatusResponse& status) {
     derivation_path_ = Path2Str(*status.path);
   }
 }
+
+bool Tapsigner::NeedSetup() const noexcept {
+  return !derivation_path_.has_value();
+}
 }  // namespace tap_protocol

@@ -37,7 +37,7 @@ TEST_CASE("set up new card") {
       std::make_unique<CardEmulator>();
   tap_protocol::Tapsigner tapsigner(std::move(tp));
 
-  if (!tapsigner.Status().path) {
+  if (tapsigner.NeedSetup()) {
     // setup new card
 
     // Random chain_code

@@ -10,7 +10,7 @@ static constexpr unsigned char CLA = 0x00;
 static constexpr unsigned char INS = 0xcb;
 static constexpr unsigned char P1 = 0x0;
 static constexpr unsigned char P2 = 0x0;
-static constexpr std::array<unsigned char, 15> APP_ID = {
+static constexpr unsigned char APP_ID[] = {
     0xf0, 0x43, 0x6f, 0x69, 0x6e, 0x6b, 0x69, 0x74,
     0x65, 0x43, 0x41, 0x52, 0x44, 0x76, 0x31,
 };

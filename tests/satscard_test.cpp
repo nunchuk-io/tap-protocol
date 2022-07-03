@@ -88,8 +88,6 @@ TEST_CASE("satscard unseal slot") {
     int past = satscard.GetActiveSlotIndex();
     auto unseal = satscard.Unseal("123456");
     int now = satscard.GetActiveSlotIndex();
-    CHECK(past + 1 == now);
-    CHECK(satscard.GetActiveSlot().index == now);
 
     const tap_protocol::Satscard::Slot expected_new_slot = {
         now,
@@ -97,8 +95,11 @@ TEST_CASE("satscard unseal slot") {
     };
 
     // new slot is unused if the card is not used up
-    CHECK_IF(now != satscard.GetNumSlots(),
+    CHECK_IF(!satscard.IsUsedUp(),
              satscard.GetActiveSlot() == expected_new_slot);
+
+    CHECK_IF(!satscard.IsUsedUp(), past + 1 == now);
+    CHECK_IF(!satscard.IsUsedUp(), satscard.GetActiveSlot().index == now);
 
     MESSAGE("satscard unseal: ", json(unseal).dump(2));
   } else {
@@ -114,8 +115,7 @@ TEST_CASE("new slot") {
     return;
   }
 
-  if (satscard.GetActiveSlot().status ==
-      tap_protocol::Satscard::SlotStatus::UNUSED) {
+  if (satscard.NeedSetup()) {
     auto newResponse = satscard.New(
         tap_protocol::SHA256(tap_protocol::RandomBytes(128)), "123456");
 

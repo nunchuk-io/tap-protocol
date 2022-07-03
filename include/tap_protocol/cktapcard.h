@@ -71,6 +71,7 @@ class CKTapCard {
   bool IsTampered() const noexcept;
   bool IsCertsChecked() const noexcept;
   bool IsTapsigner() const noexcept;
+  virtual bool NeedSetup() const noexcept { return false; };
 
   StatusResponse Status();
   std::string NFC();
@@ -138,6 +139,7 @@ class Tapsigner : public CKTapCard {
   ChangeResponse Change(const std::string& new_cvc, const std::string& cvc);
   BackupResponse Backup(const std::string& cvc);
 
+  bool NeedSetup() const noexcept override;
   int GetNumberOfBackups() const noexcept;
   std::optional<std::string> GetDerivationPath() const noexcept;
 
@@ -196,6 +198,7 @@ class Satscard : public CKTapCard {
   Slot GetActiveSlot() const;
   int GetActiveSlotIndex() const noexcept;
   int GetNumSlots() const noexcept;
+  bool NeedSetup() const noexcept override;
   bool HasUnusedSlots() const noexcept;
   bool IsUsedUp() const noexcept;
 

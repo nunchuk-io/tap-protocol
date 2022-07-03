@@ -313,4 +313,9 @@ bool Satscard::IsUsedUp() const noexcept {
          (active_slot_ == num_slots_ - 1 &&
           GetActiveSlotStatus() == SlotStatus::UNSEALED);
 }
+
+bool Satscard::NeedSetup() const noexcept {
+  return GetActiveSlotStatus() == SlotStatus::UNUSED;
+}
+
 }  // namespace tap_protocol
