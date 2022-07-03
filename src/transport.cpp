@@ -92,17 +92,19 @@ std::unique_ptr<Transport> MakeDefaultTransport(SendReceiveFunction func) {
 
 std::unique_ptr<Transport> MakeDefaultTransportIOS(
     SendReceiveFunctionIOS func) {
-  return std::make_unique<TransportImpl>(
-      [f = std::move(func)](const Bytes &req) {
-        APDUResponse resp =
-            f(APDURequest{.cla = req[0],
-                          .ins = req[1],
-                          .p1 = req[2],
-                          .p2 = req[3],
-                          .data = {std::begin(req) + 4, std::end(req)}});
-        resp.data.push_back(resp.sw1);
-        resp.data.push_back(resp.sw2);
-        return resp.data;
-      });
+  auto conv_func = [f = std::move(func)](const Bytes &req) {
+    APDUResponse resp = f(APDURequest{
+        req[0],
+        req[1],
+        req[2],
+        req[3],
+        {std::begin(req) + 4, std::end(req)},
+    });
+    resp.data.push_back(resp.sw1);
+    resp.data.push_back(resp.sw2);
+    return resp.data;
+  };
+
+  return std::make_unique<TransportImpl>(conv_func);
 }
 }  // namespace tap_protocol

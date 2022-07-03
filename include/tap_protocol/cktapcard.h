@@ -168,10 +168,10 @@ class Satscard : public CKTapCard {
     std::string address{};
 
     // cvc provide && unsealed slot
-    json::binary_t privkey;
-    json::binary_t pubkey;
-    json::binary_t master_pk;
-    json::binary_t chain_code;
+    json::binary_t privkey{};
+    json::binary_t pubkey{};
+    json::binary_t master_pk{};
+    json::binary_t chain_code{};
 
     // WIF format if privkey is present
     std::string to_wif(bool testnet = false) const;

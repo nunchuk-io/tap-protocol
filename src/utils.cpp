@@ -38,9 +38,9 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
                             "Invalid cvc length");
   }
 
-  auto [my_privkey, my_pubkey] = CT_pick_keypair();
+  const auto [my_privkey, my_pubkey] = CT_pick_keypair();
 
-  Bytes session_key = CT_ecdh(his_pubkey, my_privkey);
+  const Bytes session_key = CT_ecdh(his_pubkey, my_privkey);
 
   Bytes card_nonce_hashed(card_nonce);
   card_nonce_hashed.insert(std::end(card_nonce_hashed), std::begin(cmd),
@@ -51,7 +51,7 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
   mask.resize(cvc.size());
 
   const Bytes xcvc = XORBytes(cvc, mask);
-  return XCVC{.session_key = session_key, .epubkey = my_pubkey, .xcvc = xcvc};
+  return XCVC{session_key, my_pubkey, xcvc};
 }
 
 std::string Path2Str(const std::vector<uint32_t> &path) {
@@ -131,11 +131,12 @@ Bytes PickNonce() { return RandomBytes(USER_NONCE_SIZE); }
 #ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
 Bytes RandomBytes(size_t size) {
   Bytes result(size);
-  // bitcoin can only generate up to 32 bytes
-  for (size_t cur = 0, left = size; left > 0;) {
+  auto *pos = result.data();
+  // bitcoin can only generates up to 32 bytes
+  for (int left = size; left > 0;) {
     int len = left >= 32 ? 32 : left;
-    ::GetRandBytes(result.data() + cur, len);
-    cur += len;
+    ::GetRandBytes(pos, len);
+    pos += len;
     left -= len;
   }
   return result;

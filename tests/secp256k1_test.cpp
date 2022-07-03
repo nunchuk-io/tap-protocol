@@ -14,8 +14,6 @@ TEST_CASE("CT_pick_keypair") {
 
   CHECK(privStr.size() != 0);
   CHECK(pubStr.size() != 0);
-
-  MESSAGE("done CT_pick_keypair");
 }
 
 TEST_CASE("CT_ecdh") {
@@ -26,8 +24,6 @@ TEST_CASE("CT_ecdh") {
 
   auto sessionKey = tap_protocol::CT_ecdh(pub, priv);
   CHECK(!sessionKey.empty());
-
-  MESSAGE("done CT_ecdh");
 }
 
 TEST_CASE("random bytes") {

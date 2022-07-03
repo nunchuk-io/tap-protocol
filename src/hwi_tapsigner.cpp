@@ -24,21 +24,27 @@ using uchar = unsigned char;
 // Require to call CPubKey::IsFullyValid() when parse psbt
 static const ECCVerifyHandle verify_handle;
 
-static constexpr std::array<std::array<unsigned char, 4>, 2>
-    BASE58_PREFIX_PUBKEY = {{
-        {0x04, 0x88, 0xB2, 0x1E},  // MAIN
-        {0x04, 0x35, 0x87, 0xCF},  // TEST, SIG
-    }};
+static constexpr unsigned char BASE58_MAINNET_PUBKEY_PREFIX[] = {0x04, 0x88,
+                                                                 0xB2, 0x1E};
+static constexpr unsigned char BASE58_TESTNET_PUBKEY_PREFIX[] = {0x04, 0x35,
+                                                                 0x87, 0xCF};
 
-static CExtPubKey DecodeExtPubKey(HWITapsigner::Chain type,
+static constexpr auto &GetBase58Prefix(HWITapsigner::Chain chain) {
+  const auto &prefix = chain == HWITapsigner::Chain::MAIN
+                           ? BASE58_MAINNET_PUBKEY_PREFIX
+                           : BASE58_TESTNET_PUBKEY_PREFIX;
+  return prefix;
+}
+
+static CExtPubKey DecodeExtPubKey(HWITapsigner::Chain chain,
                                   const std::string &str) {
   CExtPubKey key;
   std::vector<unsigned char> data;
   if (DecodeBase58Check(str, data, 78)) {
-    const auto &prefix = BASE58_PREFIX_PUBKEY[type];
-    if (data.size() == BIP32_EXTKEY_SIZE + prefix.size() &&
-        std::equal(prefix.begin(), prefix.end(), data.begin())) {
-      key.Decode(data.data() + prefix.size());
+    const auto &prefix = GetBase58Prefix(chain);
+    if (data.size() == BIP32_EXTKEY_SIZE + std::size(prefix) &&
+        std::equal(std::begin(prefix), std::end(prefix), data.begin())) {
+      key.Decode(data.data() + std::size(prefix));
       return key;
     }
     throw TapProtoException(TapProtoException::INVALID_PUBKEY,
@@ -48,10 +54,11 @@ static CExtPubKey DecodeExtPubKey(HWITapsigner::Chain type,
                           "Invalid pubkey decode base58");
 }
 
-static std::string EncodeExtPubKey(HWITapsigner::Chain type,
+static std::string EncodeExtPubKey(HWITapsigner::Chain chain,
                                    const CExtPubKey &key) {
-  Bytes data{std::begin(BASE58_PREFIX_PUBKEY[type]),
-             std::end(BASE58_PREFIX_PUBKEY[type])};
+  const auto &prefix = GetBase58Prefix(chain);
+  Bytes data{std::begin(prefix), std::end(prefix)};
+
   const size_t size = data.size();
   data.resize(size + BIP32_EXTKEY_SIZE);
   key.Encode(data.data() + size);
@@ -374,7 +381,7 @@ std::string HWITapsignerImpl::GetXpubAtPath(
   Bytes pubkey_encoded(BIP32_EXTKEY_SIZE);
   pubkey.Encode(pubkey_encoded.data());
 
-  packed << MakeUCharSpan(BASE58_PREFIX_PUBKEY[chain_])
+  packed << MakeUCharSpan(GetBase58Prefix(chain_))
          << MakeUCharSpan(pubkey_encoded);
 
   return EncodeBase58Check(packed);

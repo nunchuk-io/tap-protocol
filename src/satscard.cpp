@@ -6,6 +6,8 @@
 #include "tap_protocol/utils.h"
 #include "bech32.h"
 
+#include <iostream>
+
 namespace tap_protocol {
 
 static std::string render_address(const Bytes& pubkey, bool testnet = false) {
@@ -181,14 +183,13 @@ Satscard::SlotInfo Satscard::Unseal(const std::string& cvc) {
       {std::begin(cvc), std::end(cvc)});
 
   auto result = SlotInfo{
-      .slot = resp["slot"],
-      .status = SlotStatus::UNSEALED,
-      .address = render_address_,
-      .privkey = XORBytes(resp["privkey"].get<json::binary_t>(), session_key),
-      .pubkey = resp["pubkey"],
-      .master_pk =
-          XORBytes(resp["master_pk"].get<json::binary_t>(), session_key),
-      .chain_code = resp["chain_code"],
+      resp["slot"],
+      SlotStatus::UNSEALED,
+      render_address_,
+      XORBytes(resp["privkey"].get<json::binary_t>(), session_key),
+      resp["pubkey"],
+      XORBytes(resp["master_pk"].get<json::binary_t>(), session_key),
+      resp["chain_code"],
   };
 
   // move to next slot 'unused' or used up
@@ -225,8 +226,8 @@ Satscard::SlotInfo Satscard::GetSlotInfo(int slot, const std::string& cvc) {
 
   if (slot > active_slot_) {
     return SlotInfo{
-        .slot = slot,
-        .status = SlotStatus::UNUSED,
+        slot,
+        SlotStatus::UNUSED,
     };
   }
 
@@ -234,16 +235,16 @@ Satscard::SlotInfo Satscard::GetSlotInfo(int slot, const std::string& cvc) {
     return GetActiveSlotInfo();
   }
 
-  // all slots < active_slot are unsealed
   if (cvc.empty()) {
+    // all slots < active_slot are unsealed
     auto dump = Send({
         {"cmd", "dump"},
         {"slot", slot},
     });
     return SlotInfo{
-        .slot = dump["slot"],
-        .status = SlotStatus::UNSEALED,
-        .address = std::move(dump["addr"]),
+        dump["slot"],
+        SlotStatus::UNSEALED,
+        std::move(dump["addr"]),
     };
   }
 
@@ -255,15 +256,13 @@ Satscard::SlotInfo Satscard::GetSlotInfo(int slot, const std::string& cvc) {
       {std::begin(cvc), std::end(cvc)});
 
   return SlotInfo{
-      .slot = dump["slot"],
-      .status = SlotStatus::UNSEALED,
-      .address =
-          render_address(dump["pubkey"].get<json::binary_t>(), IsTestnet()),
-      .privkey = XORBytes(dump["privkey"].get<json::binary_t>(), session_key),
-      .pubkey = dump["pubkey"].get<json::binary_t>(),
-      .master_pk =
-          XORBytes(dump["master_pk"].get<json::binary_t>(), session_key),
-      .chain_code = dump["chain_code"],
+      dump["slot"],
+      SlotStatus::UNSEALED,
+      render_address(dump["pubkey"].get<json::binary_t>(), IsTestnet()),
+      XORBytes(dump["privkey"].get<json::binary_t>(), session_key),
+      dump["pubkey"].get<json::binary_t>(),
+      XORBytes(dump["master_pk"].get<json::binary_t>(), session_key),
+      dump["chain_code"],
   };
 }
 
@@ -281,9 +280,9 @@ std::vector<Satscard::SlotInfo> Satscard::ListSlotInfos(const std::string& cvc,
 
 Satscard::SlotInfo Satscard::GetActiveSlotInfo() const noexcept {
   return SlotInfo{
-      .slot = active_slot_,
-      .status = GetActiveSlotStatus(),
-      .address = render_address_,
+      active_slot_,
+      GetActiveSlotStatus(),
+      render_address_,
   };
 }
 

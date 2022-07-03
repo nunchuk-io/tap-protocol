@@ -18,6 +18,27 @@ TEST_SUITE_BEGIN("satcard" * doctest::skip([]() -> bool {
                    ;
                  }()));
 
+TEST_CASE("list slot infos with cvc first time") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+  tap_protocol::Satscard satscard(std::move(tp));
+
+  auto infos = satscard.ListSlotInfos("123456");
+  CHECK(infos.size() == satscard.GetNumSlots());
+
+  for (auto &info : infos) {
+    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::UNSEALED,
+             !info.address.empty());
+    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::UNUSED,
+             info.address.empty());
+    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::SEALED,
+             !info.address.empty());
+    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::UNSEALED,
+             !info.address.empty() && !info.privkey.empty());
+    MESSAGE(json(info).dump(2));
+  }
+}
+
 TEST_CASE("satscard status") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
@@ -76,8 +97,8 @@ TEST_CASE("satscard unseal slot") {
     CHECK(satscard.GetActiveSlotInfo().slot == now);
 
     const tap_protocol::Satscard::SlotInfo expected_new_slot = {
-        .slot = now,
-        .status = tap_protocol::Satscard::SlotStatus::UNUSED,
+        now,
+        tap_protocol::Satscard::SlotStatus::UNUSED,
     };
 
     // new slot is unused if the card is not used up
@@ -118,27 +139,6 @@ TEST_CASE("list slot infos with limit") {
     CHECK(!info.address.empty());
     CHECK(info.status == tap_protocol::Satscard::SlotStatus::UNSEALED);
     CHECK(info.slot < satscard.GetActiveSlot());
-  }
-}
-
-TEST_CASE("list slot infos with cvc") {
-  std::unique_ptr<tap_protocol::Transport> tp =
-      std::make_unique<CardEmulator>();
-  tap_protocol::Satscard satscard(std::move(tp));
-
-  auto infos = satscard.ListSlotInfos("123456");
-  CHECK(infos.size() == satscard.GetNumSlots());
-
-  for (auto &info : infos) {
-    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::UNSEALED,
-             !info.address.empty());
-    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::UNUSED,
-             info.address.empty());
-    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::SEALED,
-             !info.address.empty());
-    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::UNSEALED,
-             !info.address.empty() && !info.privkey.empty());
-    MESSAGE(json(info).dump(2));
   }
 }
 
