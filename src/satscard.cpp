@@ -277,7 +277,10 @@ std::vector<Satscard::Slot> Satscard::ListSlots(const std::string& cvc,
   return result;
 }
 
-Satscard::Slot Satscard::GetActiveSlot() const noexcept {
+Satscard::Slot Satscard::GetActiveSlot() const {
+  if (active_slot_ == num_slots_) {
+    throw TapProtoException(TapProtoException::INVALID_SLOT, "Card is used up");
+  }
   return Slot{
       active_slot_,
       GetActiveSlotStatus(),
@@ -308,7 +311,6 @@ bool Satscard::HasUnusedSlots() const noexcept {
 bool Satscard::IsUsedUp() const noexcept {
   return (active_slot_ == num_slots_) ||
          (active_slot_ == num_slots_ - 1 &&
-          GetActiveSlotStatus() != SlotStatus::UNUSED);
+          GetActiveSlotStatus() == SlotStatus::UNSEALED);
 }
-
 }  // namespace tap_protocol

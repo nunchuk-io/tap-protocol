@@ -196,12 +196,6 @@ CKTapCard::WaitResponse CKTapCard::Wait() {
 
 CKTapCard::NewResponse CKTapCard::New(const Bytes& chain_code,
                                       const std::string& cvc, int slot) {
-  while (auth_delay_ != 0) {
-    auto wait = Wait();
-    if (!wait.success) {
-      throw TapProtoException(TapProtoException::DEFAULT_ERROR, "Wait error");
-    }
-  }
   const auto [_, resp] = SendAuth(
       {
           {"cmd", "new"},

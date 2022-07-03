@@ -72,21 +72,16 @@ TEST_CASE("list slot info no cvc") {
     CHECK(info.pubkey.empty());
     // MESSAGE(json(info).dump(2));
   }
-
-  if (!satscard.IsUsedUp()) {
-    tap_protocol::Satscard::Slot x = infos[satscard.GetActiveSlotIndex()];
-    tap_protocol::Satscard::Slot y = satscard.GetActiveSlot();
-    MESSAGE("x: ", json(x).dump(2));
-    MESSAGE("y: ", json(y).dump(2));
-
-    CHECK(x == y);
-  }
 }
 
 TEST_CASE("satscard unseal slot") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
   tap_protocol::Satscard satscard(std::move(tp));
+
+  if (satscard.IsUsedUp()) {
+    return;
+  }
 
   if (satscard.GetActiveSlot().status ==
       tap_protocol::Satscard::SlotStatus::SEALED) {
@@ -114,6 +109,10 @@ TEST_CASE("new slot") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
   tap_protocol::Satscard satscard(std::move(tp));
+
+  if (satscard.IsUsedUp()) {
+    return;
+  }
 
   if (satscard.GetActiveSlot().status ==
       tap_protocol::Satscard::SlotStatus::UNUSED) {

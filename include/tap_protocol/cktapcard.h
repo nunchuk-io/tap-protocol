@@ -159,7 +159,7 @@ class Satscard : public CKTapCard {
     UNUSED,
     SEALED,
     UNSEALED,
-    USED_UP,
+    USED_UP,  // when active slot == num slot (=10)
   };
 
   struct Slot {
@@ -193,7 +193,7 @@ class Satscard : public CKTapCard {
   Slot GetSlot(int slot, const std::string& cvc = {});
   std::vector<Slot> ListSlots(const std::string& cvc = {}, size_t limit = 10);
 
-  Slot GetActiveSlot() const noexcept;
+  Slot GetActiveSlot() const;
   int GetActiveSlotIndex() const noexcept;
   int GetNumSlots() const noexcept;
   bool HasUnusedSlots() const noexcept;

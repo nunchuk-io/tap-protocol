@@ -20,7 +20,7 @@ TEST_CASE("tapsigner to satscard") {
   tap_protocol::Tapsigner tapsigner(std::move(tp));
   if (!tapsigner.IsTapsigner()) {
     auto satscard = tap_protocol::ToSatscard(std::move(tapsigner));
-    MESSAGE("satscard active slot: ", satscard->GetActiveSlot());
+    MESSAGE("satscard active slot: ", satscard->GetActiveSlotIndex());
   }
 }
 
