@@ -478,6 +478,10 @@ std::string HWITapsignerImpl::DecryptBackup(const Bytes &encrypted_data,
   static constexpr unsigned char tprv[] = {'t', 'p', 'r', 'v'};
 
   const auto backup_key_bytes = ParseHex(backup_key);
+  if (backup_key_bytes.size() != 16) {
+    throw TapProtoException(TapProtoException::INVALID_BACKUP_KEY,
+                            "Invalid backup key");
+  }
   Bytes decrypted = AES128CTRDecrypt(encrypted_data, backup_key_bytes);
 
   if (std::equal(std::begin(xprv), std::end(xprv), std::begin(decrypted)) ||
