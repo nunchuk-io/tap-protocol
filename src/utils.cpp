@@ -154,4 +154,6 @@ Bytes RandomBytes(size_t size) {
 }
 #endif
 
+Bytes RandomChainCode() { return SHA256d(RandomBytes(128)); }
+
 }  // namespace tap_protocol

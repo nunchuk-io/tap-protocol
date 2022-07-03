@@ -34,6 +34,7 @@ std::string Path2Str(const std::vector<uint32_t> &path);
 std::vector<uint32_t> Str2Path(const std::string &path);
 
 Bytes RandomBytes(size_t size);
+Bytes RandomChainCode();
 Bytes PickNonce();
 
 }  // namespace tap_protocol

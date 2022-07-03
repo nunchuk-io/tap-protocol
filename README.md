@@ -35,6 +35,8 @@ $ ./tool/build_linux.sh
 
 ## Usage
 
+TAPSIGNER
+
 ``` c++
 
 using namespace tap_protocol;
@@ -52,10 +54,13 @@ auto tapsigner = std::make_unique<Tapsigner>(std::move(transport));
 // Get card status
 auto status = tapsigner.Status();
 
-// Setup new card
-Bytes chain_code = SHA256d(RandomBytes(128)); // generate random chain code
-std::string cvc = "123456";
-auto setup = tapsigner.New(chain_code, cvc);
+if (tapsigner.NeedSetup()) {
+  // Setup new card
+  Bytes chain_code = RandomChainCode(); // generate random chain code
+  std::string cvc = "123456";
+  auto setup = tapsigner.New(chain_code, cvc);
+}
+
 // More command here
 ```
 
@@ -91,8 +96,65 @@ auto transport = MakeDefaultTransport([](const Bytes& bytes) {
     // see how to send bytes to NFC card for Android or iOS below 
 });
 
+auto satscard = Satscard(std::move(transport));
 
-// Check if card is SATSCARD or TAPSIGNER
+if (satscard.IsUsedUp()) {
+  // Card is used up
+  // but let's check just in case some BTC are still in there
+
+  // Get all unsealed slots
+  std::vector<Satscard::Slot> slots = satscard.ListSlots();
+
+  for (const auto &slot : slots) {
+      // checking each slot address
+      auto balance = SOME_CHECKING_BALANCE_API(slot.address);
+
+      // Obtain private key
+      auto slot_with_priv = satscard.GetSlot(slot.index, "123456");
+
+      // Get wif of slot
+      std::string wif = slot_with_priv.to_wif(satscard.IsTestnet());
+
+      // Import wif then sweep func
+  }
+
+  // Or we can get all private key info in 1 go
+  std::vector<Satscard::Slot> slots_with_privkey = satscard.ListSlots("123456");
+  for (const auto &slot : slots_with_privkey) {
+      std::string wif = slot.to_wif();
+  }
+  return;
+}
+
+// Setup new slot
+if (satscard.NeedSetup()) {
+    // Setup for slot # satscard.GetActiveSlotIndex()
+    Bytes chain_code = RandomChainCode(); // generate random chain code
+    std::string cvc = "123456";
+    auto resp = satscard.New(chain_code, cvc);
+    
+    // slot address to deposit
+    std::string address = resp.address;
+} else {
+    // Current slot is sealed we can deposit to this address
+    std::string address = slot.address;
+
+    // Sweep the func
+    std::string cvc = "123456";
+    auto unseal = satscard.Unseal(cvc);
+    
+    // get private key to this slot
+    Bytes privkey = unseal.privkey;
+    
+    // in WIF format
+    std::string wif = unseal.to_wif(satscard.IsTestnet());
+}
+
+```
+
+Check if card is TAPSIGNER or SATSCARD
+
+```
 CKTapCard card(std::move(tp));
 
 if (card.IsTapsigner()) {
@@ -100,49 +162,8 @@ if (card.IsTapsigner()) {
     // Do command with tapsigner
 } else {
     auto satscard = ToSatscard(std::move(card));
-
-    bool is_used_up = satscard.IsUsedUp();
-    if (is_used_up) {
-      // Card is used up
-      return;
-    }
-
-    // Current card active slot
-    auto slot = satscard.GetActiveSlot();
-
-    // Setup new slot
-    if (slot.status == Satscard::SlotStatus::UNUSED) {
-        Bytes chain_code = SHA256d(RandomBytes(128)); // generate random chain code
-        std::string cvc = "123456";
-        auto resp = satscard.New(chain_code, cvc);
-        
-        // slot address
-        std::string address = resp.address;
-    } else if (slot.status == Satscard::SlotStatus::SEALED) {
-        // Current slot is sealed we can deposit to this address
-        std::string address = slot.address;
-
-        // Sweep the func
-        std::string cvc = "123456";
-        auto unseal = satscard.Unseal(cvc);
-        
-        // get private key to this slot
-        Bytes privkey = unseal.privkey;
-        
-        // in WIF format
-        std::string wif = unseal.to_wif(satscard.IsTestnet());
-    }
-
-    {
-      // Get all slots (no cvc => no privkey)
-      std::vector<Satscard::Slot> slots = satscard.ListSlots();
-    }
-    {
-      // Get all slots (cvc => privkey)
-      std::vector<Satscard::Slot> slots = satscard.ListSlots("123456");
-    }
+    // Do command with satscard
 }
-
 ```
 
 ### Android - use with JNI
@@ -214,6 +235,8 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_cardStatus(JNIEnv *env, j
 #include <tap_protocol/tap_protocol.h>
 #include <tap_protocol/cktapcard.h>
 
+dispatch_queue_t nfcQueue = dispatch_queue_create([@"io.nunchuk.nfc" UTF8String], dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT, QOS_CLASS_BACKGROUND, -1));
+dispatch_semaphore_t semaphore;
 
 - (void) cardStatus {
     NFCTagReaderSession *session = [[NFCTagReaderSession alloc] initWithPollingOption:NFCPollingISO14443 | NFCPollingISO15693 | NFCPollingISO18092 delegate:self queue:nfcQueue];

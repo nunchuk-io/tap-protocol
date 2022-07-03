@@ -40,14 +40,7 @@ TEST_CASE("set up new card") {
   if (tapsigner.NeedSetup()) {
     // setup new card
 
-    // Random chain_code
-
-    tap_protocol::Bytes random_chain_code = tap_protocol::RandomBytes(128);
-
-    tap_protocol::Bytes chain_code_hash =
-        tap_protocol::SHA256d(random_chain_code);
-
-    auto newResp = tapsigner.New(chain_code_hash, "123456", 0);
+    auto newResp = tapsigner.New(tap_protocol::RandomChainCode(), "123456", 0);
 
     MESSAGE("new resp:", json(newResp).dump(2));
     CHECK(!newResp.card_nonce.empty());

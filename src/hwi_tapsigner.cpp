@@ -459,7 +459,7 @@ bool HWITapsignerImpl::SetupDevice(const std::string &chain_code) {
         "Invalid hex chain code size = " + std::to_string(chain_code.size()));
   }
   auto use_chain_code =
-      chain_code.empty() ? SHA256d(RandomBytes(128)) : Hex2Bytes(chain_code);
+      chain_code.empty() ? RandomChainCode() : Hex2Bytes(chain_code);
 
   if (use_chain_code.size() != 32) {
     throw TapProtoException(

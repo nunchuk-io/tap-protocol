@@ -116,8 +116,7 @@ TEST_CASE("new slot") {
   }
 
   if (satscard.NeedSetup()) {
-    auto newResponse = satscard.New(
-        tap_protocol::SHA256(tap_protocol::RandomBytes(128)), "123456");
+    auto newResponse = satscard.New(tap_protocol::RandomChainCode(), "123456");
 
     CHECK(newResponse.index == satscard.GetActiveSlotIndex());
     CHECK(!satscard.GetActiveSlot().address.empty());
