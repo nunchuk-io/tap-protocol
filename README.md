@@ -70,7 +70,7 @@ Alternative, we can use Tapsigner HWI interface
 
 
 // Create HWI-like interface
-// auto hwi = MakeHWITapsigner(tapsigner.get(), "123456");
+auto hwi = MakeHWITapsigner(tapsigner.get(), "123456");
 
 // Setup new card
 hwi->SetupDevice();
@@ -154,7 +154,7 @@ if (satscard.NeedSetup()) {
 
 Check if card is TAPSIGNER or SATSCARD
 
-```
+``` c++
 CKTapCard card(std::move(tp));
 
 if (card.IsTapsigner()) {

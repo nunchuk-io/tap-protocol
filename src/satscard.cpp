@@ -293,7 +293,7 @@ int Satscard::GetActiveSlotIndex() const noexcept { return active_slot_; }
 
 Satscard::SlotStatus Satscard::GetActiveSlotStatus() const noexcept {
   if (active_slot_ == num_slots_) {
-    return SlotStatus::USED_UP;
+    return SlotStatus::UNSEALED;
   }
 
   if (address_.empty()) {

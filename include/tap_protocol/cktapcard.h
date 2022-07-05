@@ -30,7 +30,7 @@ class CKTapCard {
     int proto{};
     std::string ver;
     int birth{};
-    std::vector<int> slots{0, 1};
+    std::vector<int> slots;
     std::string addr;
     nlohmann::json::binary_t pubkey;
     nlohmann::json::binary_t card_nonce;
@@ -161,7 +161,6 @@ class Satscard : public CKTapCard {
     UNUSED,
     SEALED,
     UNSEALED,
-    USED_UP,  // when active slot == num slot (=10)
   };
 
   struct Slot {
