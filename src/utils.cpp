@@ -135,6 +135,7 @@ Bytes RandomBytes(size_t size) {
   // bitcoin can only generates up to 32 bytes
   for (int left = size; left > 0;) {
     int len = left >= 32 ? 32 : left;
+    // TODO (giahuy): consider using GetStrongRandBytes
     ::GetRandBytes(pos, len);
     pos += len;
     left -= len;
