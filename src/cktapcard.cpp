@@ -283,7 +283,9 @@ Bytes CKTapCard::Sign(const Bytes& digest, const std::string& cvc, int slot,
       return rec_sig;
     } catch (TapProtoException& te) {
       if (te.code() == TapProtoException::UNLUCKY_NUMBER) {
-        Status();
+        if (GetAppletVersion() == "0.9.0") {
+          Status();
+        }
         continue;
       }
       throw;
