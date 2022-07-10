@@ -330,7 +330,7 @@ void from_json(const json& j, CKTapCard::StatusResponse& t) {
   t.proto = j.value("proto", t.proto);
   t.ver = j.value("ver", t.ver);
   t.birth = j.value("birth", t.birth);
-  t.slots = j.value("slots", t.slots);
+  t.slots = j.value("slots", std::vector<int>{0, 1});
   t.addr = j.value("addr", t.addr);
   t.pubkey = j.value("pubkey", t.pubkey);
   t.card_nonce = j.value("card_nonce", t.card_nonce);
