@@ -52,13 +52,13 @@ auto tapsigner = std::make_unique<Tapsigner>(std::move(transport));
 // Tapsigner tapsigner(std::move(transport));
 
 // Get card status
-auto status = tapsigner.Status();
+auto status = tapsigner->Status();
 
-if (tapsigner.NeedSetup()) {
+if (tapsigner->NeedSetup()) {
   // Setup new card
   Bytes chain_code = RandomChainCode(); // generate random chain code
   std::string cvc = "123456";
-  auto setup = tapsigner.New(chain_code, cvc);
+  auto setup = tapsigner->New(chain_code, cvc);
 }
 
 // More command here
