@@ -1,4 +1,5 @@
 #include "base58.h"
+#include "pubkey.h"
 #include "support/cleanse.h"
 #include "util/strencodings.h"
 #include "tap_protocol/cktapcard.h"
@@ -6,9 +7,9 @@
 #include "tap_protocol/utils.h"
 #include "bech32.h"
 
-#include <iostream>
-
 namespace tap_protocol {
+
+static const ECCVerifyHandle verify_handle;
 
 static std::string render_address(const Bytes& pubkey, bool testnet = false) {
   const Bytes witprog =
@@ -106,6 +107,12 @@ static auto verify_master_pubkey(const Bytes& pub, const Bytes& sig,
   return pub;
 };
 
+static auto verify_derive_address(const Bytes& chain_code,
+                                  const Bytes& master_pub, bool testnet) {
+  auto pubkey = CT_bip32_derive(chain_code, master_pub, {0});
+  return render_address(pubkey, testnet);
+}
+
 std::string Satscard::Slot::to_wif(bool testnet) const {
   if (privkey.size() != 32) {
     throw TapProtoException(TapProtoException::INVALID_PRIVKEY,
@@ -117,7 +124,6 @@ std::string Satscard::Slot::to_wif(bool testnet) const {
 Satscard::Satscard(std::unique_ptr<Transport> transport)
     : CKTapCard(std::move(transport), false) {
   auto st = FirstLook();
-  // TODO(giahuy): Should check certs here?
 
   if (GetActiveSlotStatus() == SlotStatus::SEALED) {
     RenderActiveSlotAddress(st);
@@ -138,19 +144,25 @@ void Satscard::RenderActiveSlotAddress(const StatusResponse& status) {
   auto [pubkey, addr] = recover_address(status, read, nonce);
   render_address_ = addr;
 
-  return;
-  // TODO(giahuy): Implement additional check
-  const Bytes my_nonce = json::binary_t(PickNonce());
+  const auto my_nonce = json::binary_t(PickNonce());
   const Bytes card_nonce = read["card_nonce"].get<json::binary_t>();
-  const json derive = Send({
+  const json rr = Send({
       {"cmd", "derive"},
       {"nonce", my_nonce},
   });
 
+  const auto chain_code = rr["chain_code"].get<json::binary_t>();
+
   const Bytes master_pub = verify_master_pubkey(
-      derive["master_pubkey"].get<json::binary_t>(),
-      derive["sig"].get<json::binary_t>(),
-      derive["chain_code"].get<json::binary_t>(), my_nonce, card_nonce);
+      rr["master_pubkey"].get<json::binary_t>(),
+      rr["sig"].get<json::binary_t>(), chain_code, my_nonce, card_nonce);
+
+  std::string derived_addr =
+      verify_derive_address(chain_code, master_pub, IsTestnet());
+  if (addr != derived_addr) {
+    throw TapProtoException(TapProtoException::DEFAULT_ERROR,
+                            "Card did not derive address as expected");
+  }
 }
 
 void Satscard::Update(const CKTapCard::StatusResponse& status) {

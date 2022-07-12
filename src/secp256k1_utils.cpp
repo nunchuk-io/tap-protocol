@@ -161,4 +161,20 @@ Bytes CT_priv_to_pubkey(const Bytes& privkey) {
   return output;
 }
 
+Bytes CT_bip32_derive(const Bytes& chain_code, const Bytes& master_pub,
+                      const std::vector<uint32_t>& path) {
+  if (master_pub.size() == 32) {
+    throw TapProtoException(TapProtoException::INVALID_PUBKEY,
+                            "Expect pubkey but got privkey");
+  }
+  CExtPubKey ckey;
+  std::copy(std::begin(chain_code), std::end(chain_code),
+            std::begin(ckey.chaincode));
+  ckey.pubkey.Set(std::begin(master_pub), std::end(master_pub));
+  for (auto p : path) {
+    ckey.Derive(ckey, p);
+  }
+  return {std::begin(ckey.pubkey), std::end(ckey.pubkey)};
+}
+
 }  // namespace tap_protocol
