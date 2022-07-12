@@ -134,6 +134,9 @@ std::string CKTapCard::NFC() {
 }
 
 std::string CKTapCard::CertificateCheck() {
+  if (certs_checked_) {
+    return "Root Factory Certificate";
+  }
   const auto verify_certs = [](const json& status_resp, const json& check_resp,
                                const json& certs_resp, const Bytes& my_nonce) {
     const std::vector<json::binary_t> signatures = certs_resp["cert_chain"];
