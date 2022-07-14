@@ -75,7 +75,7 @@ class CKTapCard {
 
   StatusResponse Status();
   std::string NFC();
-  std::string CertificateCheck();
+  void CertificateCheck(const Bytes& pubkey = {});
   WaitResponse Wait();
   NewResponse New(const Bytes& chain_code, const std::string& cvc,
                   int slot = 0);
@@ -190,6 +190,7 @@ class Satscard : public CKTapCard {
 
   Slot Unseal(const std::string& cvc);
   Slot New(const Bytes& chain_code, const std::string& cvc);
+  void CertificateCheck();
 
   Slot GetSlot(int slot, const std::string& cvc = {});
   std::vector<Slot> ListSlots(const std::string& cvc = {}, size_t limit = 10);

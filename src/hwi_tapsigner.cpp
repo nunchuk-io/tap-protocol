@@ -295,7 +295,7 @@ std::string HWITapsignerImpl::SignTx(const std::string &base64_psbt) {
       }
       CDataStream ss_tx(SER_NETWORK, PROTOCOL_VERSION);
       ss_tx << blank_tx;
-      ss_tx << MakeUCharSpan(Bytes{0x01, 0x00, 0x00, 0x00});
+      ss_tx << MakeUCharSpan(std::array<uchar, 4>{0x01, 0x00, 0x00, 0x00});
       sighash = SHA256d({std::begin(ss_tx), std::end(ss_tx)});
       txin.scriptSig.clear();
     } else {

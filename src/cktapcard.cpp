@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -133,50 +134,10 @@ std::string CKTapCard::NFC() {
   throw TapProtoException(TapProtoException::MISSING_KEY, "No url found");
 }
 
-std::string CKTapCard::CertificateCheck() {
+void CKTapCard::CertificateCheck(const Bytes& pubkey) {
   if (certs_checked_) {
-    return "Root Factory Certificate";
+    return;
   }
-  const auto verify_certs = [](const json& status_resp, const json& check_resp,
-                               const json& certs_resp, const Bytes& my_nonce) {
-    const std::vector<json::binary_t> signatures = certs_resp["cert_chain"];
-    const json::binary_t card_nonce = status_resp["card_nonce"];
-    assert(signatures.size() >= 2);
-
-    Bytes msg;
-    msg.reserve(std::size(OPENDIME) + card_nonce.size() + my_nonce.size());
-    msg.insert(std::end(msg), std::begin(OPENDIME), std::end(OPENDIME));
-    msg.insert(std::end(msg), std::begin(card_nonce), std::end(card_nonce));
-    msg.insert(std::end(msg), std::begin(my_nonce), std::end(my_nonce));
-
-    if (msg.size() != std::size(OPENDIME) + CARD_NONCE_SIZE + USER_NONCE_SIZE) {
-      throw TapProtoException(TapProtoException::INVALID_CARD,
-                              "Invalid msg size " + std::to_string(msg.size()));
-    }
-
-    const Bytes msg_sha256 = SHA256(msg);
-    const json::binary_t auth_sig = check_resp["auth_sig"];
-    Bytes pubkey = status_resp["pubkey"].get<json::binary_t>();
-
-    if (!CT_sig_verify(pubkey, msg_sha256, auth_sig)) {
-      throw TapProtoException(TapProtoException::SIG_VERIFY_ERROR,
-                              "Bad sig in verify_certs");
-    }
-
-    for (const auto& sig : signatures) {
-      pubkey = CT_sig_to_pubkey(SHA256(pubkey), sig);
-    }
-
-    if (std::equal(std::begin(pubkey), std::end(pubkey),
-                   std::begin(FACTORY_ROOT_KEY), std::end(FACTORY_ROOT_KEY))) {
-      return "Root Factory Certificate";
-    }
-
-    throw TapProtoException(
-        TapProtoException::INVALID_CARD,
-        "Root cert is not from Coinkite. Card is counterfeit.");
-  };
-
   const json st = Status();
   const json certs = Send({{"cmd", "certs"}});
 
@@ -186,9 +147,9 @@ std::string CKTapCard::CertificateCheck() {
       {"nonce", nonce},
   });
 
-  auto cert = verify_certs(st, check, certs, nonce);
+  VerifyCerts(st["card_nonce"], st["pubkey"], nonce, certs["cert_chain"],
+              check["auth_sig"], pubkey);
   certs_checked_ = true;
-  return cert;
 }
 
 CKTapCard::WaitResponse CKTapCard::Wait() {

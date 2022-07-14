@@ -230,6 +230,19 @@ Satscard::Slot Satscard::New(const Bytes& chain_code, const std::string& cvc) {
   return GetActiveSlot();
 }
 
+void Satscard::CertificateCheck() {
+  if (GetAppletVersion() != "0.9.0" &&
+      GetActiveSlotStatus() == SlotStatus::SEALED) {
+    const auto read = Send({
+        {"cmd", "read"},
+        {"nonce", json::binary_t(PickNonce())},
+    });
+    CKTapCard::CertificateCheck(read["pubkey"].get<json::binary_t>());
+  } else {
+    CKTapCard::CertificateCheck();
+  }
+}
+
 Satscard::Slot Satscard::GetSlot(int slot, const std::string& cvc) {
   if (slot >= num_slots_) {
     throw TapProtoException(TapProtoException::BAD_ARGUMENTS, "Invalid slot");

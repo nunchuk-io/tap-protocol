@@ -169,14 +169,9 @@ TEST_CASE("check certs") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();
   tap_protocol::Tapsigner tapsigner(std::move(tp));
-
   // emulator doesn't need certificate check
-  CHECK_THROWS_AS(
-      {
-        std::string label = tapsigner.CertificateCheck();
-        CAPTURE(label);
-      },
-      tap_protocol::TapProtoException);
+  CHECK_THROWS_AS({ tapsigner.CertificateCheck(); },
+                  tap_protocol::TapProtoException);
 }
 
 TEST_CASE("sign digest") {

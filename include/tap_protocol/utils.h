@@ -37,6 +37,13 @@ Bytes RandomBytes(size_t size);
 Bytes RandomChainCode();
 Bytes PickNonce();
 
+void VerifyCerts(const nlohmann::json::binary_t &card_nonce,
+                 const nlohmann::json::binary_t &card_pubkey,
+                 const nlohmann::json::binary_t &my_nonce,
+                 const std::vector<nlohmann::json::binary_t> &cert_chain,
+                 const nlohmann::json::binary_t &signature,
+                 const nlohmann::json::binary_t &slot_pubkey);
+
 }  // namespace tap_protocol
 
 #endif  // UTILS_H

@@ -190,4 +190,13 @@ TEST_CASE("invalid cvc") {
   MESSAGE("info: ", json(info).dump(2));
 }
 
+TEST_CASE("certificate check") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+  tap_protocol::Satscard satscard(std::move(tp));
+
+  CHECK_THROWS_AS({ satscard.CertificateCheck(); },
+                  tap_protocol::TapProtoException);
+}
+
 TEST_SUITE_END();

@@ -157,4 +157,52 @@ Bytes RandomBytes(size_t size) {
 
 Bytes RandomChainCode() { return SHA256d(RandomBytes(128)); }
 
+void VerifyCerts(const nlohmann::json::binary_t &card_nonce,
+                 const nlohmann::json::binary_t &card_pubkey,
+                 const nlohmann::json::binary_t &my_nonce,
+                 const std::vector<nlohmann::json::binary_t> &cert_chain,
+                 const nlohmann::json::binary_t &signature,
+                 const nlohmann::json::binary_t &slot_pubkey) {
+  assert(cert_chain.size() >= 2);
+
+  Bytes msg;
+  msg.reserve(std::size(OPENDIME) + card_nonce.size() + my_nonce.size() +
+              slot_pubkey.size());
+  msg.insert(std::end(msg), std::begin(OPENDIME), std::end(OPENDIME));
+  msg.insert(std::end(msg), std::begin(card_nonce), std::end(card_nonce));
+  msg.insert(std::end(msg), std::begin(my_nonce), std::end(my_nonce));
+
+  if (msg.size() != std::size(OPENDIME) + CARD_NONCE_SIZE + USER_NONCE_SIZE) {
+    throw TapProtoException(TapProtoException::INVALID_CARD,
+                            "Invalid msg size " + std::to_string(msg.size()));
+  }
+
+  if (!slot_pubkey.empty()) {
+    assert(slot_pubkey.size() == 33);
+    msg.insert(std::end(msg), std::begin(slot_pubkey), std::end(slot_pubkey));
+  }
+
+  const Bytes msg_sha256 = SHA256(msg);
+
+  if (!CT_sig_verify(card_pubkey, msg_sha256, signature)) {
+    throw TapProtoException(TapProtoException::SIG_VERIFY_ERROR,
+                            "Bad sig in verify_certs");
+  }
+
+  auto pubkey = card_pubkey;
+  for (const auto &sig : cert_chain) {
+    pubkey = CT_sig_to_pubkey(SHA256(pubkey), sig);
+  }
+
+  if (std::equal(std::begin(pubkey), std::end(pubkey),
+                 std::begin(FACTORY_ROOT_KEY), std::end(FACTORY_ROOT_KEY))) {
+    //"Root Factory Certificate";
+    return;
+  }
+
+  throw TapProtoException(
+      TapProtoException::INVALID_CARD,
+      "Root cert is not from Coinkite. Card is counterfeit.");
+}
+
 }  // namespace tap_protocol
