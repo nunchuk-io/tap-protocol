@@ -57,7 +57,8 @@ class CKTapCard {
     bool success{};
     int auth_delay{};
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(WaitResponse, success, auth_delay);
+    friend void to_json(nlohmann::json& j, const WaitResponse& t);
+    friend void from_json(const nlohmann::json& j, WaitResponse& t);
   };
 
   nlohmann::json Send(const nlohmann::json& msg);
@@ -129,7 +130,8 @@ class Tapsigner : public CKTapCard {
     nlohmann::json::binary_t data;
     nlohmann::json::binary_t card_nonce;
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(BackupResponse, data, card_nonce);
+    friend void to_json(nlohmann::json& j, const BackupResponse& t);
+    friend void from_json(const nlohmann::json& j, BackupResponse& t);
   };
 
   DeriveResponse Derive(const std::string& path, const std::string& cvc);

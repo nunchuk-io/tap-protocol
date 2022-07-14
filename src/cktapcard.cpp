@@ -308,4 +308,16 @@ void from_json(const json& j, CKTapCard::StatusResponse& t) {
   }
 }
 
+void to_json(nlohmann::json& j, const CKTapCard::WaitResponse& t) {
+  j = {
+      {"auth_delay", t.auth_delay},
+      {"success", t.success},
+  };
+}
+
+void from_json(const nlohmann::json& j, CKTapCard::WaitResponse& t) {
+  t.auth_delay = j.value("auth_delay", t.auth_delay);
+  t.success = j.value("success", t.success);
+}
+
 }  // namespace tap_protocol

@@ -45,6 +45,17 @@ void from_json(const nlohmann::json& j, Tapsigner::ChangeResponse& t) {
   t.card_nonce = j.value("card_nonce", t.card_nonce);
 }
 
+void to_json(nlohmann::json& j, const Tapsigner::BackupResponse& t) {
+  j = {
+      {"data", t.data},
+      {"card_nonce", t.card_nonce},
+  };
+}
+void from_json(const nlohmann::json& j, Tapsigner::BackupResponse& t) {
+  t.data = j.value("data", t.data);
+  t.card_nonce = j.value("card_nonce", t.card_nonce);
+}
+
 Tapsigner::Tapsigner(std::unique_ptr<Transport> transport)
     : CKTapCard(std::move(transport), false) {
   FirstLook();
