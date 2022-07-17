@@ -7,6 +7,8 @@
 #include <fstream>
 #include <memory>
 
+const std::string default_cvc = "123456";
+
 TEST_SUITE_BEGIN("tapsigner" * doctest::skip([]() -> bool {
                    std::unique_ptr<tap_protocol::Transport> tp =
                        std::make_unique<CardEmulator>();
@@ -15,7 +17,20 @@ TEST_SUITE_BEGIN("tapsigner" * doctest::skip([]() -> bool {
                    ;
                  }()));
 
-const std::string default_cvc = "123456";
+TEST_CASE("verify chaincode") {
+  auto tp = std::make_unique<CardEmulator>();
+  auto tapsigner = std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
+  if (tapsigner->NeedSetup()) {
+    auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
+    auto chaincode = tap_protocol::Bytes2Hex(tap_protocol::RandomChainCode());
+
+    hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
+    hwi->SetupDevice(chaincode);
+    auto device_chaincode = hwi->GetChaincodeAtPath();
+
+    CHECK(chaincode == device_chaincode);
+  }
+}
 
 TEST_CASE("HWI Tapsigner test") {
   std::unique_ptr<tap_protocol::Transport> tp =

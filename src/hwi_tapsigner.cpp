@@ -387,6 +387,18 @@ std::string HWITapsignerImpl::GetXpubAtPath(
   return EncodeBase58Check(packed);
 }
 
+std::string HWITapsignerImpl::GetChaincodeAtPath(
+    const std::string &derivation_path) {
+  if (derivation_path.empty() || derivation_path == "m") {
+    auto xp = device_->Xpub(cvc_, true);
+    auto pubkey = DecodeExtPubKey(chain_, xp);
+    return Bytes2Hex(
+        {std::begin(pubkey.chaincode), std::end(pubkey.chaincode)});
+  }
+  auto pubkey = GetXpubAtPathInternal(derivation_path);
+  return Bytes2Hex({std::begin(pubkey.chaincode), std::end(pubkey.chaincode)});
+}
+
 void HWITapsignerImpl::DeriveDevice(const std::string &derivation_path) {
   if (device_->GetDerivationPath() != derivation_path) {
     device_->Derive(derivation_path, cvc_);
