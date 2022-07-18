@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 #include "nlohmann/json.hpp"
 #include "transport.h"
 
@@ -30,7 +31,14 @@ class CKTapCard {
     int proto{};
     std::string ver;
     int birth{};
+#ifdef QT_VERSION
+    #pragma push_macro("slots")
+    #undef slots
     std::vector<int> slots;
+    #pragma pop_macro("slots")
+#else
+    std::vector<int> slots;
+#endif
     std::string addr;
     nlohmann::json::binary_t pubkey;
     nlohmann::json::binary_t card_nonce;
