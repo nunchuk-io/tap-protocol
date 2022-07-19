@@ -57,7 +57,6 @@ target_include_directories(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME} PRIVATE TAPPROTOCOL_LIBRARY)
 
 target_compile_options(${PROJECT_NAME} PRIVATE 
-       $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
         #-fsanitize=undefined -fsanitize=address -fsanitize-address-use-after-scope
        )
