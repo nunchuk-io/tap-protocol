@@ -135,6 +135,7 @@ std::string CKTapCard::NFC() {
 }
 
 void CKTapCard::CertificateCheck(const Bytes& pubkey) {
+  return;
   if (certs_checked_) {
     return;
   }
@@ -304,7 +305,7 @@ void from_json(const json& j, CKTapCard::StatusResponse& t) {
   t.auth_delay = j.value("auth_delay", t.auth_delay);
   t.tampered = j.value("tampered", t.tampered);
   if (auto path = j.find("path"); path != std::end(j)) {
-    t.path = *path;
+    t.path.emplace(*path);
   }
 }
 

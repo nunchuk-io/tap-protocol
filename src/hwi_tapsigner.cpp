@@ -82,13 +82,13 @@ static int get_bip44_purpose(HWITapsigner::AddressType address_type) {
 }
 
 static bool is_p2pkh(const CScript &script) {
-  return script.size() == 25 && script[0] == 0x76 and script[1] == 0xa9 and
-         script[2] == 0x14 and script[23] == 0x88 and script[24] == 0xac;
+  return script.size() == 25 && script[0] == 0x76 && script[1] == 0xa9 &&
+         script[2] == 0x14 && script[23] == 0x88 && script[24] == 0xac;
 }
 
 static bool is_p2pk(const CScript &script) {
   return (script.size() == 35 || script.size() == 67) &&
-         (script[0] == 0x21 or script[0] == 0x41) && script.back() == 0xac;
+         (script[0] == 0x21 || script[0] == 0x41) && script.back() == 0xac;
 }
 
 static std::tuple<bool, int, std::vector<unsigned char>> is_p2wpkh(
