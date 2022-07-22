@@ -1,6 +1,6 @@
 # tap-protocol
 
-[Coinkite Tap Protocol](https://github.com/coinkite/coinkite-tap-proto/blob/master/docs/protocol.md) implement in C++
+[Coinkite Tap Protocol](https://github.com/coinkite/coinkite-tap-proto/blob/master/docs/protocol.md) implements in C++
 
 ## Setup
 
@@ -61,14 +61,12 @@ if (tapsigner->NeedSetup()) {
   auto setup = tapsigner->New(chain_code, cvc);
 }
 
-// More command here
+// See more command in include/tap_protocol/cktapcard.h
 ```
 
 Alternative, we can use Tapsigner HWI interface
 
 ``` c++
-
-
 // Create HWI-like interface
 auto hwi = MakeHWITapsigner(tapsigner.get(), "123456");
 
@@ -84,6 +82,10 @@ std::string signed_message = hwi->SignMessage("nunchuk", "m/84h/0h/0h");
 // Sign transaction
 std::string base64_psbt = "...";
 std::string signed_tx = hwi->SignTx(base64_psbt);
+
+// Backup-restore
+auto bytes = hwi->BackupDevice();
+std::string decrypt_backup = hwi->DecryptBackup(bytes, "backup key");
 
 ```
 
@@ -139,7 +141,7 @@ if (satscard.NeedSetup()) {
     // Current slot is sealed we can deposit to this address
     std::string address = slot.address;
 
-    // Sweep the func
+    // Unseal & sweep the func
     std::string cvc = "123456";
     auto unseal = satscard.Unseal(cvc);
     
@@ -235,7 +237,11 @@ Java_com_example_tap_1protocol_1nativesdk_MainActivity_cardStatus(JNIEnv *env, j
 #include <tap_protocol/tap_protocol.h>
 #include <tap_protocol/cktapcard.h>
 
-dispatch_queue_t nfcQueue = dispatch_queue_create([@"io.nunchuk.nfc" UTF8String], dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_CONCURRENT, QOS_CLASS_BACKGROUND, -1));
+using namespace tap_protocol;
+
+@interface YourLibName () <NFCTagReaderSessionDelegate>
+
+dispatch_queue_t nfcQueue = dispatch_queue_create([@"io.nunchuk.nfc" UTF8String], dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_BACKGROUND, -1));
 dispatch_semaphore_t semaphore;
 
 - (void) cardStatus {
@@ -244,18 +250,18 @@ dispatch_semaphore_t semaphore;
     semaphore = dispatch_semaphore_create(0);
     dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
     id<NFCTag> tag = session.connectedTag;
-    auto transport = tap_protocol::MakeDefaultTransportIOS([tag](const tap_protocol::APDURequest &req) {
-        tap_protocol::Bytes bytes = {req.cla, req.ins, req.p1, req.p2};
+    auto transport = MakeDefaultTransportIOS([tag](const APDURequest &req) {
+        Bytes bytes = {req.cla, req.ins, req.p1, req.p2};
         NSMutableData *data = [[NSMutableData alloc] initWithBytes:bytes.data() length:bytes.size() * sizeof(unsigned char)];
         [data appendBytes:req.data.data() length:req.data.size() * sizeof(unsigned char)];
         NFCISO7816APDU *apdu = [[NFCISO7816APDU alloc] initWithData:data];
         
-        __block auto response = tap_protocol::APDUResponse();
+        __block auto response = APDUResponse();
         dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
         [tag.asNFCISO7816Tag sendCommandAPDU:apdu completionHandler:^(NSData * _Nonnull responseData, uint8_t sw1, uint8_t sw2, NSError * _Nullable error) {
             const unsigned char *dataArray = (unsigned char *)responseData.bytes;
             const size_t count = responseData.length / sizeof(unsigned char);
-            response.data = tap_protocol::Bytes(dataArray, dataArray + count);;
+            response.data = Bytes(dataArray, dataArray + count);;
             response.sw1 = sw1;
             response.sw2 = sw2;
             dispatch_semaphore_signal(semaphore);
@@ -264,13 +270,24 @@ dispatch_semaphore_t semaphore;
         return response;
     });
 
-
-    tap_protocol::Tapsigner tapsigner(std::move(transport));
+    Tapsigner tapsigner(std::move(transport));
     
     // Run command `status`
     auto status = tapsigner.Status();
     [session invalidateSession];
 }
+
+- (void)tagReaderSession:(NFCTagReaderSession *)session didDetectTags:(NSArray<__kindof id<NFCTag>> *)tags {
+    id<NFCTag> tag = [tags firstObject];
+    [session connectToTag:tag completionHandler:^(NSError * _Nullable error) {
+        if (error != NULL) {
+            [session invalidateSessionWithErrorMessage:@"Unable to connect tag"];
+            return;
+        }
+        dispatch_semaphore_signal(semaphore);
+    }];
+}
+
 ```
 
 ## Contributing
