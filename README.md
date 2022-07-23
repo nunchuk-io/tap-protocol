@@ -1,6 +1,6 @@
 # tap-protocol
 
-[Coinkite Tap Protocol](https://github.com/coinkite/coinkite-tap-proto/blob/master/docs/protocol.md) implemented in C++
+[Coinkite Tap Protocol](https://github.com/coinkite/coinkite-tap-proto/blob/master/docs/protocol.md) implemented in C++.
 
 ## Setup
 
@@ -17,7 +17,7 @@ add_subdirectory(tap-protocol)
 target_link_libraries("${PROJECT_NAME}" PUBLIC tap-protocol)
 ```
 
-Build secp256k1
+Build secp256k1.
 
 ``` bash
 # Android
@@ -43,7 +43,7 @@ using namespace tap_protocol;
 
 // First create a transport that sends bytes to the device
 auto transport = MakeDefaultTransport([](const Bytes& bytes) {
-    // see how to send bytes to NFC card for Android or iOS below 
+    // see how to send bytes to NFC card on Android or iOS below 
 });
 
 // Create a Tapsigner using transport
@@ -64,13 +64,13 @@ if (tapsigner->NeedSetup()) {
 // See more commands in include/tap_protocol/cktapcard.h
 ```
 
-Alternative, we can use Tapsigner HWI interface
+Alternatively, we can use Tapsigner HWI interface
 
 ``` c++
 // Create HWI-like interface
 auto hwi = MakeHWITapsigner(tapsigner.get(), "123456");
 
-// Setup a new card
+// Set up a new card
 hwi->SetupDevice();
 
 // Card fingerprint
@@ -138,7 +138,7 @@ if (satscard.NeedSetup()) {
     // slot address to deposit
     std::string address = resp.address;
 } else {
-    // Current slot is sealed we can deposit to this address
+    // Current slot is sealed so we can deposit to this address
     std::string address = slot.address;
 
     // Unseal & sweep the func
@@ -170,7 +170,7 @@ if (card.IsTapsigner()) {
 
 ### Android - use with JNI
 
-Android Intent that handle NFC event
+Android Intent that handles NFC events
 
 ``` java
     protected void onNewIntent(Intent intent) {
