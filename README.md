@@ -1,6 +1,6 @@
 # tap-protocol
 
-[Coinkite Tap Protocol](https://github.com/coinkite/coinkite-tap-proto/blob/master/docs/protocol.md) implements in C++
+[Coinkite Tap Protocol](https://github.com/coinkite/coinkite-tap-proto/blob/master/docs/protocol.md) implemented in C++
 
 ## Setup
 
@@ -41,7 +41,7 @@ TAPSIGNER
 
 using namespace tap_protocol;
 
-// First create a transport that sends bytes to device
+// First create a transport that sends bytes to the device
 auto transport = MakeDefaultTransport([](const Bytes& bytes) {
     // see how to send bytes to NFC card for Android or iOS below 
 });
@@ -55,13 +55,13 @@ auto tapsigner = std::make_unique<Tapsigner>(std::move(transport));
 auto status = tapsigner->Status();
 
 if (tapsigner->NeedSetup()) {
-  // Setup new card
+  // Set up a new card
   Bytes chain_code = RandomChainCode(); // generate random chain code
   std::string cvc = "123456";
   auto setup = tapsigner->New(chain_code, cvc);
 }
 
-// See more command in include/tap_protocol/cktapcard.h
+// See more commands in include/tap_protocol/cktapcard.h
 ```
 
 Alternative, we can use Tapsigner HWI interface
@@ -70,7 +70,7 @@ Alternative, we can use Tapsigner HWI interface
 // Create HWI-like interface
 auto hwi = MakeHWITapsigner(tapsigner.get(), "123456");
 
-// Setup new card
+// Setup a new card
 hwi->SetupDevice();
 
 // Card fingerprint
@@ -93,7 +93,7 @@ SATSCARD
 
 ``` c++
 
-// First create a transport that sends bytes to device
+// First create a transport that sends bytes to the device
 auto transport = MakeDefaultTransport([](const Bytes& bytes) {
     // see how to send bytes to NFC card for Android or iOS below 
 });
@@ -120,7 +120,7 @@ if (satscard.IsUsedUp()) {
       // Import wif then sweep func
   }
 
-  // Or we can get all private key info in 1 go
+  // Or we can get all private key info in one go
   std::vector<Satscard::Slot> slots_with_privkey = satscard.ListSlots("123456");
   for (const auto &slot : slots_with_privkey) {
       std::string wif = slot.to_wif();
@@ -128,7 +128,7 @@ if (satscard.IsUsedUp()) {
   return;
 }
 
-// Setup new slot
+// Set up a new slot
 if (satscard.NeedSetup()) {
     // Setup for slot # satscard.GetActiveSlotIndex()
     Bytes chain_code = RandomChainCode(); // generate random chain code
@@ -145,7 +145,7 @@ if (satscard.NeedSetup()) {
     std::string cvc = "123456";
     auto unseal = satscard.Unseal(cvc);
     
-    // get private key to this slot
+    // get private key for this slot
     Bytes privkey = unseal.privkey;
     
     // in WIF format
