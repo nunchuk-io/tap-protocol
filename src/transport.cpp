@@ -15,14 +15,6 @@ static constexpr unsigned char APP_ID[] = {
     0x65, 0x43, 0x41, 0x52, 0x44, 0x76, 0x31,
 };
 
-static Bytes SizeToLC(size_t size) {
-  if (size < 256) {
-    return {static_cast<unsigned char>(size)};
-  }
-  return {static_cast<unsigned char>((size & 0xff00) >> 8),
-          static_cast<unsigned char>((size & 0xff))};
-}
-
 static Bytes MakeAPDURequest(const Bytes &msg, unsigned char cla = CLA,
                              unsigned char ins = INS, unsigned char p1 = P1,
                              unsigned char p2 = P2) {
@@ -30,24 +22,26 @@ static Bytes MakeAPDURequest(const Bytes &msg, unsigned char cla = CLA,
     throw TapProtoException(TapProtoException::MESSAGE_TOO_LONG,
                             "Message too long");
   }
-  const auto lc = SizeToLC(msg.size());
 
   Bytes apdu;
-  apdu.reserve(4 + lc.size() + msg.size());
+  apdu.reserve(4 + msg.size());
   apdu.push_back(cla);
   apdu.push_back(ins);
   apdu.push_back(p1);
   apdu.push_back(p2);
-  apdu.insert(end(apdu), begin(lc), end(lc));
+  apdu.push_back(static_cast<unsigned char>(msg.size()));
   apdu.insert(end(apdu), begin(msg), end(msg));
   return apdu;
 }
 
-static bool IsSWOk(const Bytes &bytes) {
+static bool CheckSW(Bytes &bytes) {
   if (bytes.size() < 2) {
     return false;
   }
-  const auto [sw2, sw1] = std::tie(*rbegin(bytes), *std::next(rbegin(bytes)));
+  const auto sw2 = bytes.back();
+  bytes.pop_back();
+  const auto sw1 = bytes.back();
+  bytes.pop_back();
 
   if (sw1 != SW_OKAY_1 || sw2 != SW_OKAY_2) {
     return false;
@@ -64,7 +58,7 @@ void TransportImpl::ISOSelect() {
   const auto request =
       MakeAPDURequest({std::begin(APP_ID), std::end(APP_ID)}, 0x00, 0xa4, 0x4);
   Bytes response = send_receive_func_(request);
-  if (!IsSWOk(response)) {
+  if (!CheckSW(response)) {
     throw TapProtoException(TapProtoException::ISO_SELECT_FAIL,
                             "ISO select failed");
   }
@@ -74,11 +68,8 @@ json TransportImpl::Send(const json &msg) {
   try {
     const auto request = MakeAPDURequest(json::to_cbor(msg));
     Bytes response = send_receive_func_(request);
-    if (!IsSWOk(response)) {
+    if (!CheckSW(response)) {
       throw TapProtoException(TapProtoException::SW_FAIL, "SW failed");
-    }
-    if (response.size() > 2) {
-      response.resize(response.size() - 2);
     }
     return json::from_cbor(response, false);
   } catch (json::exception &ex) {
