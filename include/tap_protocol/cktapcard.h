@@ -32,10 +32,10 @@ class CKTapCard {
     std::string ver;
     int birth{};
 #ifdef QT_VERSION
-    #pragma push_macro("slots")
-    #undef slots
+#pragma push_macro("slots")
+#undef slots
     std::vector<int> slots;
-    #pragma pop_macro("slots")
+#pragma pop_macro("slots")
 #else
     std::vector<int> slots;
 #endif
@@ -225,6 +225,7 @@ class Satscard : public CKTapCard {
   std::string address_;
   // render_address_ : active slot full address
   std::string render_address_;
+  json::binary_t active_slot_pubkey_;
 };
 
 }  // namespace tap_protocol

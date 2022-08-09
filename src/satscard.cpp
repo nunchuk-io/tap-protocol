@@ -134,6 +134,7 @@ void Satscard::RenderActiveSlotAddress(const StatusResponse& status) {
   if (status.addr.empty()) {
     address_.clear();
     render_address_.clear();
+    active_slot_pubkey_.clear();
     return;
   }
   const auto nonce = json::binary_t(PickNonce());
@@ -143,6 +144,7 @@ void Satscard::RenderActiveSlotAddress(const StatusResponse& status) {
   });
   auto [pubkey, addr] = recover_address(status, read, nonce);
   render_address_ = addr;
+  active_slot_pubkey_ = pubkey;
 
   const auto my_nonce = json::binary_t(PickNonce());
   const Bytes card_nonce = read["card_nonce"].get<json::binary_t>();
@@ -199,7 +201,7 @@ Satscard::Slot Satscard::Unseal(const std::string& cvc) {
       SlotStatus::UNSEALED,
       render_address_,
       XORBytes(resp["privkey"].get<json::binary_t>(), session_key),
-      resp["pubkey"],
+      active_slot_pubkey_ = resp["pubkey"],
       XORBytes(resp["master_pk"].get<json::binary_t>(), session_key),
       resp["chain_code"],
   };
@@ -265,6 +267,7 @@ Satscard::Slot Satscard::GetSlot(int slot, const std::string& cvc) {
         {"cmd", "dump"},
         {"slot", slot},
     });
+
     return Slot{
         dump["slot"],
         SlotStatus::UNSEALED,
@@ -307,9 +310,8 @@ Satscard::Slot Satscard::GetActiveSlot() const {
     throw TapProtoException(TapProtoException::INVALID_SLOT, "Card is used up");
   }
   return Slot{
-      active_slot_,
-      GetActiveSlotStatus(),
-      render_address_,
+      active_slot_, GetActiveSlotStatus(), render_address_,
+      {},           active_slot_pubkey_,
   };
 }
 

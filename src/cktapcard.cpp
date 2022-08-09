@@ -135,6 +135,9 @@ std::string CKTapCard::NFC() {
 }
 
 void CKTapCard::CertificateCheck(const Bytes& pubkey) {
+#ifdef SKIP_CERTIFICATE_CHECK
+  return;
+#endif
   if (certs_checked_) {
     return;
   }

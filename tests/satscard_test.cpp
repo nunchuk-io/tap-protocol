@@ -69,8 +69,9 @@ TEST_CASE("list slot info no cvc") {
     CHECK(info.privkey.empty());
     CHECK(info.chain_code.empty());
     CHECK(info.master_pk.empty());
-    CHECK(info.pubkey.empty());
-    // MESSAGE(json(info).dump(2));
+    CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::SEALED,
+             !info.pubkey.empty());
+    //MESSAGE("slot info no cvc:", json(info).dump(2));
   }
 }
 
