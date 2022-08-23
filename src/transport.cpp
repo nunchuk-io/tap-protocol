@@ -24,7 +24,7 @@ static Bytes MakeAPDURequest(const Bytes &msg, unsigned char cla = CLA,
   }
 
   Bytes apdu;
-  apdu.reserve(4 + msg.size());
+  apdu.reserve(5 + msg.size());
   apdu.push_back(cla);
   apdu.push_back(ins);
   apdu.push_back(p1);
