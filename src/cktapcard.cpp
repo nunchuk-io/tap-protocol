@@ -46,14 +46,16 @@ std::unique_ptr<Tapsigner> ToTapsigner(CKTapCard&& cktapcard) {
   if (cktapcard.IsTapsigner()) {
     return std::make_unique<Tapsigner>(std::move(cktapcard.transport_));
   }
-  throw TapProtoException(TapProtoException::INVALID_CARD, "Not a TAPSIGNER");
+  throw TapProtoException(TapProtoException::INVALID_DEVICE,
+                          "Incorrect device type detected. Please try again.");
 }
 
 std::unique_ptr<Satscard> ToSatscard(CKTapCard&& cktapcard) {
   if (!cktapcard.IsTapsigner()) {
     return std::make_unique<Satscard>(std::move(cktapcard.transport_));
   }
-  throw TapProtoException(TapProtoException::INVALID_CARD, "Not a SATSCARD");
+  throw TapProtoException(TapProtoException::INVALID_DEVICE,
+                          "Incorrect device type detected. Please try again.");
 }
 
 CKTapCard::StatusResponse CKTapCard::FirstLook() {

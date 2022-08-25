@@ -26,6 +26,7 @@ using SendReceiveFunctionIOS =
 
 class TapProtoException : public std::exception {
  public:
+  static constexpr int INVALID_DEVICE = 100;
   static constexpr int UNLUCKY_NUMBER = 205;
   static constexpr int BAD_ARGUMENTS = 400;
   static constexpr int BAD_AUTH = 401;
