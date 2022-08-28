@@ -79,6 +79,8 @@ if (BUILD_TESTING)
             )
     target_link_libraries(test_main ${Boost_LIBRARIES})
 
+    target_compile_definitions(${PROJECT_NAME} PUBLIC SKIP_CERTIFICATE_CHECK)
+
     set(files
             tests/transport_test.cpp
             tests/connection_test.cpp
@@ -91,7 +93,6 @@ if (BUILD_TESTING)
         get_filename_component(testcase ${file} NAME_WE)
         add_executable(${testcase} ${file} $<TARGET_OBJECTS:test_main>)
         target_link_libraries(${testcase} ${PROJECT_NAME})
-        target_compile_definitions(${testcase} PRIVATE SKIP_CERTIFICATE_CHECK)
         target_include_directories(${testcase} PUBLIC
                 "${PROJECT_SOURCE_DIR}/tests/contrib/doctest"
                 "${PROJECT_SOURCE_DIR}/include"

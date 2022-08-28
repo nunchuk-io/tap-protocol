@@ -59,6 +59,7 @@ void from_json(const nlohmann::json& j, Tapsigner::BackupResponse& t) {
 Tapsigner::Tapsigner(std::unique_ptr<Transport> transport)
     : CKTapCard(std::move(transport), false) {
   FirstLook();
+  CertificateCheck();
 }
 
 int Tapsigner::GetNumberOfBackups() const noexcept { return number_of_backup_; }

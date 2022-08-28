@@ -71,7 +71,7 @@ TEST_CASE("list slot info no cvc") {
     CHECK(info.master_pk.empty());
     CHECK_IF(info.status == tap_protocol::Satscard::SlotStatus::SEALED,
              !info.pubkey.empty());
-    //MESSAGE("slot info no cvc:", json(info).dump(2));
+    // MESSAGE("slot info no cvc:", json(info).dump(2));
   }
 }
 
@@ -196,8 +196,10 @@ TEST_CASE("certificate check") {
       std::make_unique<CardEmulator>();
   tap_protocol::Satscard satscard(std::move(tp));
 
+#ifndef SKIP_CERTIFICATE_CHECK
   CHECK_THROWS_AS({ satscard.CertificateCheck(); },
                   tap_protocol::TapProtoException);
+#endif
 }
 
 TEST_SUITE_END();

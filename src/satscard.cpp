@@ -128,6 +128,7 @@ Satscard::Satscard(std::unique_ptr<Transport> transport)
   if (GetActiveSlotStatus() == SlotStatus::SEALED) {
     RenderActiveSlotAddress(st);
   }
+  CertificateCheck();
 }
 
 void Satscard::RenderActiveSlotAddress(const StatusResponse& status) {
