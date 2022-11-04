@@ -42,6 +42,10 @@ static CExtPubKey DecodeExtPubKey(HWITapsigner::Chain chain,
   std::vector<unsigned char> data;
   if (DecodeBase58Check(str, data, 78)) {
     const auto &prefix = GetBase58Prefix(chain);
+#ifdef SKIP_BASE58_PREFIX_CHECK
+    key.Decode(data.data() + std::size(prefix));
+    return key;
+#else
     if (data.size() == BIP32_EXTKEY_SIZE + std::size(prefix) &&
         std::equal(std::begin(prefix), std::end(prefix), data.begin())) {
       key.Decode(data.data() + std::size(prefix));
@@ -49,6 +53,7 @@ static CExtPubKey DecodeExtPubKey(HWITapsigner::Chain chain,
     }
     throw TapProtoException(TapProtoException::INVALID_PUBKEY,
                             "Invalid pubkey prefix");
+#endif
   }
   throw TapProtoException(TapProtoException::INVALID_PUBKEY,
                           "Invalid pubkey decode base58");
