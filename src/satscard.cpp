@@ -273,7 +273,7 @@ Satscard::Slot Satscard::GetSlot(int slot, const std::string& cvc) {
                 SlotStatus::UNSEALED,
                 std::move(dump["addr"]),
                 {},
-                std::move(dump["pubkey"])};
+                dump.value("pubkey", json::binary_t{})};
   }
 
   auto [session_key, dump] = SendAuth(
