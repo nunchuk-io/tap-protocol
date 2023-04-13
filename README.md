@@ -21,7 +21,7 @@ Build secp256k1.
 
 ``` bash
 # Android
-$ ./tool/build_android.sh
+$ ./tools/build_android.sh
 
 # iOS
 $ PLATFORM_NAME=iphoneos CONFIGURATION=debug ARCHS=arm64 ./tools/build_ios.sh
@@ -30,7 +30,7 @@ $ PLATFORM_NAME=iphoneos CONFIGURATION=debug ARCHS=arm64 ./tools/build_ios.sh
 # build/contrib/bitcoin-core/src/secp256k1/build/iphoneos/libsecp256k1.a
 
 # Linux
-$ ./tool/build_linux.sh
+$ ./tools/build_linux.sh
 ```
 
 ## Usage
