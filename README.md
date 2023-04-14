@@ -22,6 +22,9 @@ Build secp256k1.
 ``` bash
 # Android
 $ ./tools/build_android.sh
+# Alternatively you can specify the ABI to build:
+$ ARCHS=arm64-v8a ./tools/build_android.sh
+# all, armeabi-v7a, arm64-v8a, x86 or x86_64 are supported
 
 # iOS
 $ PLATFORM_NAME=iphoneos CONFIGURATION=debug ARCHS=arm64 ./tools/build_ios.sh
