@@ -1,11 +1,27 @@
 #!/bin/bash
 
-set -e
-
 if [ -z "$ANDROID_NDK" ]; then
    echo "export the ANDROID_NDK environment variable"
    exit 1
 fi
+
+# Allow the caller to specify which build to run
+abiToBuild="all"
+if [ -n "$ARCHS" ]; then
+    abiRegex="^(all|armeabi-v7a|arm64-v8a|x86|x86_64)$"
+    [[ $ARCHS =~ $abiRegex ]]
+    
+    if [[ $? == 0 ]]; then
+        abiToBuild="$ARCHS"
+        echo "manually selected ABI: $abiToBuild"
+    else
+        echo "invalid ARCHS environment variable, the following are accepted: all, armeabi-v7a, arm64-v8a, x86 or x86_64"
+        exit 1
+    fi
+fi
+
+# Ensure all commands after this point exit upon erroring
+set -e
 
 # Get the location of the android NDK build tools to build with
 asm=""
@@ -66,10 +82,18 @@ build()
   make install
 }
 
-build armeabi-v7a armv7a-linux-androideabi
-build arm64-v8a   aarch64-linux-android
-build x86         i686-linux-android
-build x86_64      x86_64-linux-android
+if [[ $abiToBuild == "all" ]] || [[ $abiToBuild == "armeabi-v7a" ]]; then
+    build armeabi-v7a   armv7a-linux-androideabi
+fi
+if [[ $abiToBuild == "all" ]] || [[ $abiToBuild == "arm64-v8a" ]]; then
+    build arm64-v8a     aarch64-linux-android
+fi
+if [[ $abiToBuild == "all" ]] || [[ $abiToBuild == "x86" ]]; then
+    build x86           i686-linux-android
+fi
+if [[ $abiToBuild == "all" ]] || [[ $abiToBuild == "x86_64" ]]; then
+    build x86_64        x86_64-linux-android
+fi
 
 make clean
 
