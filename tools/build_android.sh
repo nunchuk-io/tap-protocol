@@ -69,7 +69,7 @@ build()
 build armeabi-v7a armv7a-linux-androideabi
 build arm64-v8a   aarch64-linux-android
 build x86         i686-linux-android
-build x86-64      x86_64-linux-android
+build x86_64      x86_64-linux-android
 
 make clean
 
