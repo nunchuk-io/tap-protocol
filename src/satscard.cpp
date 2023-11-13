@@ -125,6 +125,12 @@ Satscard::Satscard(std::unique_ptr<Transport> transport)
     : CKTapCard(std::move(transport), false) {
   auto st = FirstLook();
 
+  if (st.tapsigner) {
+    throw TapProtoException(
+        TapProtoException::INVALID_DEVICE,
+        "Incorrect device type detected. Please try again.");
+  }
+
   if (GetActiveSlotStatus() == SlotStatus::SEALED) {
     RenderActiveSlotAddress(st);
   }

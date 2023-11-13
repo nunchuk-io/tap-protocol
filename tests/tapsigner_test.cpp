@@ -14,16 +14,6 @@
 // $ ./ecard.py emulate -t
 // $ ./ecard.py emulate -t --no-init # fresh card
 
-TEST_CASE("tapsigner to satscard") {
-  std::unique_ptr<tap_protocol::Transport> tp =
-      std::make_unique<CardEmulator>();
-  tap_protocol::Tapsigner tapsigner(std::move(tp));
-  if (!tapsigner.IsTapsigner()) {
-    auto satscard = tap_protocol::ToSatscard(std::move(tapsigner));
-    MESSAGE("satscard active slot: ", satscard->GetActiveSlotIndex());
-  }
-}
-
 TEST_SUITE_BEGIN("tapsigner" * doctest::skip([]() -> bool {
                    std::unique_ptr<tap_protocol::Transport> tp =
                        std::make_unique<CardEmulator>();
