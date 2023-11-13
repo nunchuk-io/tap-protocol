@@ -58,7 +58,12 @@ void from_json(const nlohmann::json& j, Tapsigner::BackupResponse& t) {
 
 Tapsigner::Tapsigner(std::unique_ptr<Transport> transport)
     : CKTapCard(std::move(transport), false) {
-  FirstLook();
+  auto st = FirstLook();
+  if (!st.tapsigner) {
+    throw TapProtoException(
+        TapProtoException::INVALID_DEVICE,
+        "Incorrect device type detected. Please try again.");
+  }
   CertificateCheck();
 }
 

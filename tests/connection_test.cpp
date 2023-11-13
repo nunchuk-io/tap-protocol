@@ -56,3 +56,19 @@ TEST_CASE("type of card") {
     CHECK(st.proto == 1);
   }
 }
+
+TEST_CASE("invalid card") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+
+  tap_protocol::CKTapCard card(std::move(tp));
+  if (card.IsTapsigner()) {
+    CHECK_THROWS_AS(
+        { auto tapsigner = tap_protocol::ToSatscard(std::move(card)); },
+        tap_protocol::TapProtoException);
+  } else {
+    CHECK_THROWS_AS(
+        { auto satscard = tap_protocol::ToTapsigner(std::move(card)); },
+        tap_protocol::TapProtoException);
+  }
+}

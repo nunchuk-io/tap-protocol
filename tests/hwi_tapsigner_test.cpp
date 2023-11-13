@@ -129,6 +129,22 @@ TEST_CASE("decrypt backup") {
   CHECK(decrypted == expected);
 }
 
+TEST_CASE("decrypt backup invalid data") {
+  std::unique_ptr<tap_protocol::Transport> tp =
+      std::make_unique<CardEmulator>();
+
+  std::unique_ptr<tap_protocol::Tapsigner> tapsigner =
+      std::make_unique<tap_protocol::Tapsigner>(std::move(tp));
+
+  auto hwi = tap_protocol::MakeHWITapsigner(tapsigner.get(), default_cvc);
+  hwi->SetChain(tap_protocol::HWITapsigner::Chain::TESTNET);
+
+  std::string backup_key = "41414141414141414141414141414141";
+  auto encrypted = tap_protocol::Hex2Bytes("");
+  CHECK_THROWS_AS({ hwi->DecryptBackup(encrypted, backup_key); },
+                  tap_protocol::TapProtoException);
+}
+
 TEST_CASE("get xpub at path") {
   std::unique_ptr<tap_protocol::Transport> tp =
       std::make_unique<CardEmulator>();

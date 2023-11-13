@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstddef>
 #include <string>
+#include <cstdint>
 
 namespace tap_protocol {
 using Bytes = std::vector<unsigned char>;
