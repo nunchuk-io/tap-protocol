@@ -89,15 +89,7 @@ add_library(${PROJECT_NAME} STATIC
 if (NOT ${USE_EXTERNAL_SECP256K1})
   if (ANDROID)
     add_library(libsecp256k1 STATIC IMPORTED)
-
-    # Ensure we use the lib folder for 32-bit and lib64 folder for 64-bit
-    # Note: macOS always outputs to a "lib" folder
-    if ((${CMAKE_ANDROID_ARCH} MATCHES "^(arm|mips|x86)$") OR (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin"))
-      set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/android/${ANDROID_ABI}/lib/libsecp256k1.a)
-    else()
-      set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/android/${ANDROID_ABI}/lib64/libsecp256k1.a)
-    endif()
-    
+    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/android/${ANDROID_ABI}/lib/libsecp256k1.a)
     set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
   elseif(IOS)
     add_library(libsecp256k1 STATIC IMPORTED)
