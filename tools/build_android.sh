@@ -70,7 +70,8 @@ build()
   export RANLIB=$TOOLCHAIN/bin/$TARGET-ranlib
   export STRIP=$TOOLCHAIN/bin/$TARGET-strip
 
-  ./configure --prefix="$pwd/build/android/$abi" --host=$TARGET $asm --disable-shared --with-pic --enable-benchmark=no --enable-module-recovery --enable-module-schnorrsig --enable-module-ecdh --enable-experimental --enable-tests=no
+  prefix="$pwd/build/android/$abi"
+  ./configure --prefix="$prefix" --host=$TARGET $asm --disable-shared --with-pic --enable-benchmark=no --enable-module-recovery --enable-module-schnorrsig --enable-module-ecdh --enable-experimental --enable-tests=no
 
   local num_jobs=4
   if [ -f /proc/cpuinfo ]; then
@@ -80,6 +81,15 @@ build()
   make clean
   make -j $num_jobs
   make install
+
+  # Some Linux distros output to a lib64 folder for some ABIs instead of lib
+  libName="libsecp256k1.a"
+  lib32Path="$prefix/lib"
+  lib64Path="$prefix/lib64"
+  if [ -f "$lib64Path/$libName" ] && [ ! -f "$lib32Path/$libName" ]; then
+    mkdir -p "$lib32Path"
+    ln -s "$lib64Path/$libName" "$lib32Path/$libName"
+  fi
 }
 
 if [[ $abiToBuild == "all" ]] || [[ $abiToBuild == "armeabi-v7a" ]]; then
