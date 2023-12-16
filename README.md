@@ -30,7 +30,7 @@ $ ARCHS=arm64-v8a ./tools/build_android.sh
 $ PLATFORM_NAME=iphoneos CONFIGURATION=debug ARCHS=arm64 ./tools/build_ios.sh
 # Add these libs into XCode project Build Phases
 # build/contrib/bitcoin-core/libbitcoin-core.a
-# build/contrib/bitcoin-core/src/secp256k1/build/iphoneos/libsecp256k1.a
+# contrib/bitcoin-core/src/secp256k1/build/iphoneos/libsecp256k1.a
 
 # Linux
 $ ./tools/build_linux.sh
