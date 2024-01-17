@@ -87,31 +87,21 @@ add_library(${PROJECT_NAME} STATIC
         src/crypto/aes.cpp
         )
 if (NOT ${USE_EXTERNAL_SECP256K1})
-  if (ANDROID)
-    add_library(libsecp256k1 STATIC IMPORTED)
-    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/android/${ANDROID_ABI}/lib/libsecp256k1.a)
-    set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
-  elseif(IOS)
-    add_library(libsecp256k1 STATIC IMPORTED)
-    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/build/iphoneos/libsecp256k1.a)
-    set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
-  elseif(WIN32)
-    message(FATAL_ERROR "Not support yet!")
-  else()
-    add_library(libsecp256k1 STATIC IMPORTED)
-    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${PROJECT_SOURCE_DIR}/src/secp256k1/.libs/libsecp256k1.a)
-    set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/src/secp256k1/include)
-  endif()
+  set(SECP256K1_DISABLE_SHARED ON)
+  set(SECP256K1_ENABLE_MODULE_RECOVERY ON)
+  set(SECP256K1_BUILD_BENCHMARK OFF)
+  set(SECP256K1_BUILD_TESTS OFF)
+  set(SECP256K1_BUILD_EXHAUSTIVE_TESTS OFF)
+  set(SECP256K1_BUILD_CTIME_TESTS OFF)
+  set(SECP256K1_BUILD_EXAMPLES OFF)
+  add_subdirectory(src/secp256k1)
+  target_link_libraries(${PROJECT_NAME} PUBLIC secp256k1)
 else()
+    target_compile_definitions(${PROJECT_NAME} PUBLIC SECP256K1_V020)
     add_library(libsecp256k1 STATIC IMPORTED)
     set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${EXTERNAL_SECP256K1_LIBRARY})
     set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${EXTERNAL_SECP256K1_INCLUDE})
+    target_link_libraries(${PROJECT_NAME} PUBLIC libsecp256k1)
 endif()
 
-target_include_directories(${PROJECT_NAME}
-        PUBLIC src
-        )
-
-target_link_libraries(${PROJECT_NAME}
-        PUBLIC libsecp256k1
-        )
+target_include_directories(${PROJECT_NAME} PUBLIC src)
