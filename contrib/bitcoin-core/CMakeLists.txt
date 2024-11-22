@@ -5,11 +5,6 @@ project(bitcoin-core LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Fix conflict secp256k1 when build with bitcoin-core
-option(USE_EXTERNAL_SECP256K1 "Use external secp256k1 library" OFF)
-option(EXTERNAL_SECP256K1_LIBRARY "External secp256k1 library path" "")
-option(EXTERNAL_SECP256K1_INCLUDE "External secp256k1 include path" "")
-
 add_library(${PROJECT_NAME} STATIC
         src/amount.h
         src/streams.h
@@ -86,21 +81,18 @@ add_library(${PROJECT_NAME} STATIC
         src/crypto/aes.h
         src/crypto/aes.cpp
         )
-if (NOT ${USE_EXTERNAL_SECP256K1})
-  set(SECP256K1_DISABLE_SHARED ON)
-  set(SECP256K1_ENABLE_MODULE_RECOVERY ON)
-  set(SECP256K1_BUILD_BENCHMARK OFF)
-  set(SECP256K1_BUILD_TESTS OFF)
-  set(SECP256K1_BUILD_EXHAUSTIVE_TESTS OFF)
-  set(SECP256K1_BUILD_CTIME_TESTS OFF)
-  set(SECP256K1_BUILD_EXAMPLES OFF)
-  add_subdirectory(src/secp256k1)
-  target_link_libraries(${PROJECT_NAME} PUBLIC secp256k1)
+if (TARGET secp256k1)
+    target_link_libraries(${PROJECT_NAME} PUBLIC secp256k1)
 else()
-    add_library(libsecp256k1 STATIC IMPORTED)
-    set_target_properties(libsecp256k1 PROPERTIES IMPORTED_LOCATION ${EXTERNAL_SECP256K1_LIBRARY})
-    set_target_properties(libsecp256k1 PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${EXTERNAL_SECP256K1_INCLUDE})
-    target_link_libraries(${PROJECT_NAME} PUBLIC libsecp256k1)
+    set(SECP256K1_DISABLE_SHARED ON)
+    set(SECP256K1_ENABLE_MODULE_RECOVERY ON)
+    set(SECP256K1_BUILD_BENCHMARK OFF)
+    set(SECP256K1_BUILD_TESTS OFF)
+    set(SECP256K1_BUILD_EXHAUSTIVE_TESTS OFF)
+    set(SECP256K1_BUILD_CTIME_TESTS OFF)
+    set(SECP256K1_BUILD_EXAMPLES OFF)
+    add_subdirectory(src/secp256k1)
+    target_link_libraries(${PROJECT_NAME} PUBLIC secp256k1)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC src)
