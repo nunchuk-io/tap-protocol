@@ -13,6 +13,7 @@
 #include <uint256.h>
 //#include <util/vector.h>
 
+namespace bc_core {
 typedef std::vector<unsigned char> valtype;
 
 MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(
@@ -816,3 +817,4 @@ const BaseSignatureCreator& DUMMY_MAXIMUM_SIGNATURE_CREATOR =
 //     }
 //     return input_errors.empty();
 // }
+}

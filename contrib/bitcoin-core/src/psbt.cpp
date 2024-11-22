@@ -7,6 +7,7 @@
 //#include <util/check.h>
 #include <util/strencodings.h>
 
+namespace bc_core {
 
 PartiallySignedTransaction::PartiallySignedTransaction(const CMutableTransaction& tx) : tx(tx)
 {
@@ -396,4 +397,5 @@ bool DecodeRawPSBT(PartiallySignedTransaction& psbt, const std::string& tx_data,
         return false;
     }
     return true;
+}
 }

@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include <limits>
+namespace bc_core {
 
 /** All alphanumeric characters except for "0", "I", "O", and "l" */
 static const char* pszBase58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -164,4 +165,5 @@ bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRe
         return false;
     }
     return DecodeBase58Check(str.c_str(), vchRet, max_ret);
+}
 }

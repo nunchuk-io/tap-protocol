@@ -11,6 +11,7 @@
 
 #include <assert.h>
 
+namespace bc_core {
 std::string COutPoint::ToString() const
 {
     return strprintf("COutPoint(%s, %u)", hash.ToString().substr(0,10), n);
@@ -113,4 +114,5 @@ std::string CTransaction::ToString() const
     for (const auto& tx_out : vout)
         str += "    " + tx_out.ToString() + "\n";
     return str;
+}
 }

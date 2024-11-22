@@ -7,6 +7,11 @@
 #include "tap_protocol/secp256k1_utils.h"
 #include "tap_protocol/utils.h"
 
+#ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
+void GetRandBytes(Span<unsigned char> bytes) noexcept;
+void GetStrongRandBytes(Span<unsigned char> bytes) noexcept;
+#endif
+
 namespace tap_protocol {
 
 static constexpr int EC_PRIVATE_KEY_LEN = 32;
@@ -23,7 +28,7 @@ static secp256k1_context* get_secp256k1_context() {
                                        SECP256K1_CONTEXT_VERIFY)) {
 #ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
       Bytes random_bytes(32);
-      GetStrongRandBytes(random_bytes.data(), random_bytes.size());
+      ::GetStrongRandBytes(Span<unsigned char>(random_bytes.data(), random_bytes.size()));
       assert(secp256k1_context_randomize(ctx, random_bytes.data()));
 #else
       Bytes random_bytes = RandomBytes(32);
@@ -167,6 +172,7 @@ Bytes CT_bip32_derive(const Bytes& chain_code, const Bytes& master_pub,
     throw TapProtoException(TapProtoException::INVALID_PUBKEY,
                             "Expect pubkey but got privkey");
   }
+using namespace bc_core;
   CExtPubKey ckey;
   std::copy(std::begin(chain_code), std::end(chain_code),
             std::begin(ckey.chaincode));

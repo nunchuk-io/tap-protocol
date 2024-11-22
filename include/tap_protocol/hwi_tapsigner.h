@@ -7,7 +7,9 @@
 #include "tap_protocol/cktapcard.h"
 #include "tap_protocol/tap_protocol.h"
 
-struct CExtPubKey;
+namespace bc_core {
+  struct CExtPubKey;
+}
 
 namespace tap_protocol {
 
@@ -75,7 +77,7 @@ class HWITapsignerImpl : public HWITapsigner {
  private:
   void DeriveDevice(const std::string &derivation_path);
   Bytes GetMasterFingerprintBytes();
-  CExtPubKey GetXpubAtPathInternal(const std::string &derivation_path);
+  bc_core::CExtPubKey GetXpubAtPathInternal(const std::string &derivation_path);
 
  private:
   Chain chain_ = MAIN;

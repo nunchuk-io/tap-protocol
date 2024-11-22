@@ -19,6 +19,7 @@
 #include "tap_protocol/utils.h"
 
 namespace tap_protocol {
+using namespace bc_core;
 using uchar = unsigned char;
 
 // Require to call CPubKey::IsFullyValid() when parse psbt

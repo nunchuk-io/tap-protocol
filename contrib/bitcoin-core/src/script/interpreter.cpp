@@ -12,6 +12,7 @@
 #include <script/script.h>
 #include <uint256.h>
 
+namespace bc_core {
 typedef std::vector<unsigned char> valtype;
 
 namespace {
@@ -2132,4 +2133,5 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     }
 
     return 0;
+}
 }

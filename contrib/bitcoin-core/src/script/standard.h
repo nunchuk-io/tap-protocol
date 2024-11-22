@@ -15,6 +15,7 @@
 #include <string>
 #include <variant>
 
+namespace bc_core {
 static const bool DEFAULT_ACCEPT_DATACARRIER = true;
 
 class CKeyID;
@@ -334,5 +335,5 @@ public:
  * returned, corresponding to a depth-first traversal of the script tree.
  */
 std::optional<std::vector<std::tuple<int, CScript, int>>> InferTaprootTree(const TaprootSpendData& spenddata, const XOnlyPubKey& output);
-
+}
 #endif // BITCOIN_SCRIPT_STANDARD_H

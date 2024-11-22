@@ -9,6 +9,8 @@
 
 #include <string.h>
 
+namespace bc_core {
+
 template <unsigned int BITS>
 base_blob<BITS>::base_blob(const std::vector<unsigned char>& vch)
 {
@@ -41,14 +43,14 @@ void base_blob<BITS>::SetHex(const char* psz)
 
     // hex string to uint
     size_t digits = 0;
-    while (::HexDigit(psz[digits]) != -1)
+    while (HexDigit(psz[digits]) != -1)
         digits++;
     unsigned char* p1 = (unsigned char*)m_data;
     unsigned char* pend = p1 + WIDTH;
     while (digits > 0 && p1 < pend) {
-        *p1 = ::HexDigit(psz[--digits]);
+        *p1 = HexDigit(psz[--digits]);
         if (digits > 0) {
-            *p1 |= ((unsigned char)::HexDigit(psz[--digits]) << 4);
+            *p1 |= ((unsigned char)HexDigit(psz[--digits]) << 4);
             p1++;
         }
     }
@@ -82,3 +84,4 @@ template void base_blob<256>::SetHex(const std::string&);
 
 const uint256 uint256::ZERO(0);
 const uint256 uint256::ONE(1);
+}

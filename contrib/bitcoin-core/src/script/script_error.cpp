@@ -7,6 +7,7 @@
 
 #include <string>
 
+namespace bc_core {
 std::string ScriptErrorString(const ScriptError serror)
 {
     switch (serror)
@@ -120,4 +121,5 @@ std::string ScriptErrorString(const ScriptError serror)
         default: break;
     }
     return "unknown error";
+}
 }

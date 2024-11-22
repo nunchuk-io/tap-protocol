@@ -8,7 +8,7 @@
 #include "bech32.h"
 
 namespace tap_protocol {
-
+using namespace bc_core;
 static const ECCVerifyHandle verify_handle;
 
 static std::string render_address(const Bytes& pubkey, bool testnet = false) {

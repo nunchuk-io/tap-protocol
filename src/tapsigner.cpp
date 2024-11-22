@@ -4,6 +4,7 @@
 #include "tap_protocol/utils.h"
 
 namespace tap_protocol {
+using namespace bc_core;
 void to_json(json& j, const Tapsigner::DeriveResponse& t) {
   j = {
       {"sig", t.sig},

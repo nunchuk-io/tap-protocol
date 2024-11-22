@@ -14,6 +14,8 @@
 
 #include <tuple>
 
+namespace bc_core {
+
 /**
  * A flag that is ORed into the protocol version to designate that a transaction
  * should be (un)serialized without witness data.
@@ -398,5 +400,5 @@ public:
     friend bool operator==(const GenTxid& a, const GenTxid& b) { return a.m_is_wtxid == b.m_is_wtxid && a.m_hash == b.m_hash; }
     friend bool operator<(const GenTxid& a, const GenTxid& b) { return std::tie(a.m_is_wtxid, a.m_hash) < std::tie(b.m_is_wtxid, b.m_hash); }
 };
-
+}
 #endif // BITCOIN_PRIMITIVES_TRANSACTION_H

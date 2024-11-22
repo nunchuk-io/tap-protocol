@@ -14,6 +14,7 @@
 
 #include <string>
 
+namespace bc_core {
 typedef std::vector<unsigned char> valtype;
 
 bool fAcceptDatacarrier = DEFAULT_ACCEPT_DATACARRIER;
@@ -660,4 +661,5 @@ std::optional<std::vector<std::tuple<int, CScript, int>>> InferTaprootTree(const
     }
 
     return ret;
+}
 }

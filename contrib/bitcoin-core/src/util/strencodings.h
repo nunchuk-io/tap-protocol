@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+namespace bc_core {
 /** Used by SanitizeString() */
 enum SafeChars
 {
@@ -263,5 +264,5 @@ std::string ToUpper(const std::string& str);
  * @returns         string with the first letter capitalized.
  */
 std::string Capitalize(std::string str);
-
+}
 #endif // BITCOIN_UTIL_STRENCODINGS_H

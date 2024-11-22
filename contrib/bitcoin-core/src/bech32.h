@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+namespace bc_core {
 namespace bech32
 {
 
@@ -46,4 +47,6 @@ DecodeResult Decode(const std::string& str);
 
 } // namespace bech32
 
+
+}
 #endif // BITCOIN_BECH32_H

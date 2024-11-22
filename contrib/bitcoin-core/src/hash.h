@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+namespace bc_core {
 typedef uint256 ChainCode;
 
 /** A hasher class for Bitcoin's 256-bit hash (double SHA-256). */
@@ -210,5 +211,5 @@ void BIP32Hash(const ChainCode &chainCode, unsigned int nChild, unsigned char he
  * then calling CHashWriter::GetSHA256().
  */
 CHashWriter TaggedHash(const std::string& tag);
-
+}
 #endif // BITCOIN_HASH_H

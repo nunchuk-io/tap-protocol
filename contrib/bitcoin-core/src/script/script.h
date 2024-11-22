@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+namespace bc_core {
 // Maximum number of bytes pushable to the stack
 static const unsigned int MAX_SCRIPT_ELEMENT_SIZE = 520;
 
@@ -571,5 +572,5 @@ struct CScriptWitness
 
 /** Test for OP_SUCCESSx opcodes as defined by BIP342. */
 bool IsOpSuccess(const opcodetype& opcode);
-
+}
 #endif // BITCOIN_SCRIPT_SCRIPT_H

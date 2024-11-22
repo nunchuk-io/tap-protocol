@@ -15,7 +15,9 @@
 #include <cstring>
 #include <optional>
 #include <vector>
+typedef struct secp256k1_context_struct secp256k1_context;
 
+namespace bc_core {
 const unsigned int BIP32_EXTKEY_SIZE = 74;
 
 /** A reference to a CKey: the Hash160 of its serialized public key */
@@ -316,10 +318,9 @@ public:
     ~ECCVerifyHandle();
 };
 
-typedef struct secp256k1_context_struct secp256k1_context;
+const secp256k1_context* GetVerifyContext();
+}
 
 /** Access to the internal secp256k1 context used for verification. Only intended to be used
  *  by key.cpp. */
-const secp256k1_context* GetVerifyContext();
-
 #endif // BITCOIN_PUBKEY_H

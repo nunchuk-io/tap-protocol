@@ -7,7 +7,7 @@
 #include <crypto/hmac_sha512.h>
 
 #include <string>
-
+namespace bc_core {
 inline uint32_t ROTL32(uint32_t x, int8_t r)
 {
     return (x << r) | (x >> (32 - r));
@@ -95,4 +95,5 @@ CHashWriter TaggedHash(const std::string& tag)
     CSHA256().Write((const unsigned char*)tag.data(), tag.size()).Finalize(taghash.begin());
     writer << taghash << taghash;
     return writer;
+}
 }

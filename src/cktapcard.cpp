@@ -11,7 +11,7 @@
 #include "tap_protocol/utils.h"
 
 namespace tap_protocol {
-
+using namespace bc_core;
 static std::string CardPubkeyToIdent(const Bytes& card_pubkey) {
   if (card_pubkey.size() != 33) {
     throw TapProtoException(TapProtoException::INVALID_PUBKEY_LENGTH,

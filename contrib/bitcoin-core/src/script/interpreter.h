@@ -14,6 +14,8 @@
 #include <vector>
 #include <stdint.h>
 
+namespace bc_core {
+
 class CPubKey;
 class XOnlyPubKey;
 class CScript;
@@ -332,5 +334,5 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
 bool CheckMinimalPush(const std::vector<unsigned char>& data, opcodetype opcode);
 
 int FindAndDelete(CScript& script, const CScript& b);
-
+}
 #endif // BITCOIN_SCRIPT_INTERPRETER_H

@@ -8,8 +8,13 @@
 #include "tap_protocol/hash_utils.h"
 #include "util/strencodings.h"
 
-namespace tap_protocol {
+#ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
+void GetRandBytes(Span<unsigned char> bytes) noexcept;
+void GetStrongRandBytes(Span<unsigned char> bytes) noexcept;
+#endif
 
+namespace tap_protocol {
+using namespace bc_core;
 std::string Bytes2Hex(const Bytes &msg) { return HexStr(msg); }
 
 Bytes Hex2Bytes(const std::string &hex) { return ParseHex(hex); }
@@ -136,7 +141,7 @@ Bytes RandomBytes(size_t size) {
   for (int left = size; left > 0;) {
     int len = left >= 32 ? 32 : left;
     // TODO (giahuy): consider using GetStrongRandBytes
-    ::GetRandBytes(pos, len);
+    ::GetRandBytes(Span<unsigned char>(pos, len));
     pos += len;
     left -= len;
   }

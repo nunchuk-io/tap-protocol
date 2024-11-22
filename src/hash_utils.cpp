@@ -3,7 +3,7 @@
 #include <hash.h>
 
 namespace tap_protocol {
-
+using namespace bc_core;
 static constexpr int SHA256_LEN = 32;
 static constexpr int HASH160_LEN = 20;
 

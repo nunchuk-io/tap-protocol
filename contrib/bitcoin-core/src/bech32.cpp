@@ -7,6 +7,7 @@
 
 #include <assert.h>
 
+namespace bc_core {
 namespace bech32
 {
 
@@ -198,3 +199,4 @@ DecodeResult Decode(const std::string& str) {
 }
 
 } // namespace bech32
+}

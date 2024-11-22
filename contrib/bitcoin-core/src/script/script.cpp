@@ -9,6 +9,8 @@
 
 #include <string>
 
+namespace bc_core {
+
 std::string GetOpName(opcodetype opcode)
 {
     switch (opcode)
@@ -338,4 +340,5 @@ bool IsOpSuccess(const opcodetype& opcode)
            (opcode >= 131 && opcode <= 134) || (opcode >= 137 && opcode <= 138) ||
            (opcode >= 141 && opcode <= 142) || (opcode >= 149 && opcode <= 153) ||
            (opcode >= 187 && opcode <= 254);
+}
 }

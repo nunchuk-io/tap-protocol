@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <limits>
 
+namespace bc_core {
 static const std::string CHARS_ALPHA_NUM = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 static const std::string SAFE_CHARS[] =
@@ -603,4 +604,5 @@ std::string HexStr(const Span<const uint8_t> s)
     }
     assert(it == rv.end());
     return rv;
+}
 }
