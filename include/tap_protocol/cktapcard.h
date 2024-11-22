@@ -23,6 +23,7 @@ class CKTapCard {
  public:
   explicit CKTapCard(std::unique_ptr<Transport> transport,
                      bool first_look = true);
+  virtual ~CKTapCard() = default;
 
   friend std::unique_ptr<Tapsigner> ToTapsigner(CKTapCard&& cktapcard);
   friend std::unique_ptr<Satscard> ToSatscard(CKTapCard&& cktapcard);

@@ -171,7 +171,7 @@ Tapsigner::ChangeResponse Tapsigner::Change(const std::string& new_cvc,
                                             const std::string& cvc) {
   if (new_cvc.size() < 6 || new_cvc.size() > 32) {
     throw TapProtoException(TapProtoException::INVALID_CVC_LENGTH,
-                            "Invalid cvc length");
+                            "PIN must be between 6 and 32 digits.");
   }
   const auto [_, resp] = SendAuth(
       {

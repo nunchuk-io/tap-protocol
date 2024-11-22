@@ -40,7 +40,7 @@ XCVC CalcXCVC(const Bytes &cmd, const nlohmann::json::binary_t &card_nonce,
               const nlohmann::json::binary_t &his_pubkey, const Bytes &cvc) {
   if (cvc.size() < 6 || cvc.size() > 32) {
     throw TapProtoException(TapProtoException::INVALID_CVC_LENGTH,
-                            "Invalid cvc length");
+                            "PIN must be between 6 and 32 digits.");
   }
 
   const auto [my_privkey, my_pubkey] = CT_pick_keypair();
