@@ -2,6 +2,7 @@
 #include <cctype>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include <psbt.h>
@@ -497,12 +498,12 @@ std::string HWITapsignerImpl::DecryptBackup(const Bytes &encrypted_data,
   static constexpr unsigned char xprv[] = {'x', 'p', 'r', 'v'};
   static constexpr unsigned char tprv[] = {'t', 'p', 'r', 'v'};
 
-  const auto backup_key_bytes = ParseHex(backup_key);
-  if (backup_key_bytes.size() != 16) {
+  const auto opt_key_bytes = TryParseHex<unsigned char>(backup_key);
+  if (!opt_key_bytes || opt_key_bytes->size() != 16) {
     throw TapProtoException(TapProtoException::INVALID_BACKUP_KEY,
                             "Invalid backup key");
   }
-  Bytes decrypted = AES128CTRDecrypt(encrypted_data, backup_key_bytes);
+  Bytes decrypted = AES128CTRDecrypt(encrypted_data, *opt_key_bytes);
 
   if (decrypted.size() < std::size(xprv)) {
     throw TapProtoException(TapProtoException::INVALID_BACKUP_KEY,

@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -37,6 +38,9 @@ enum SafeChars
 std::string SanitizeString(const std::string& str, int rule = SAFE_CHARS_DEFAULT);
 std::vector<unsigned char> ParseHex(const char* psz);
 std::vector<unsigned char> ParseHex(const std::string& str);
+/** Parse the hex string into bytes (uint8_t or std::byte). Ignores whitespace. Returns nullopt on invalid input. */
+template <typename Byte = std::byte>
+std::optional<std::vector<Byte>> TryParseHex(std::string_view str);
 signed char HexDigit(char c);
 /* Returns true if each character in str is a hex character, and has an even
  * number of hex digits.*/
