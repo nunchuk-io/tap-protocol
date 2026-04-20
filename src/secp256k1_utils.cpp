@@ -8,8 +8,9 @@
 #include "tap_protocol/utils.h"
 
 #ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
-void GetRandBytes(Span<unsigned char> bytes) noexcept;
-void GetStrongRandBytes(Span<unsigned char> bytes) noexcept;
+#include <span>
+void GetRandBytes(std::span<unsigned char> bytes) noexcept;
+void GetStrongRandBytes(std::span<unsigned char> bytes) noexcept;
 #endif
 
 namespace tap_protocol {
@@ -28,7 +29,7 @@ static secp256k1_context* get_secp256k1_context() {
                                        SECP256K1_CONTEXT_VERIFY)) {
 #ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
       Bytes random_bytes(32);
-      ::GetStrongRandBytes(Span<unsigned char>(random_bytes.data(), random_bytes.size()));
+      ::GetStrongRandBytes(random_bytes);
       assert(secp256k1_context_randomize(ctx, random_bytes.data()));
 #else
       Bytes random_bytes = RandomBytes(32);

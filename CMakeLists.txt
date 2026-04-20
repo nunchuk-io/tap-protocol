@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(tap-protocol LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -60,7 +60,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
         #-fsanitize=undefined -fsanitize=address -fsanitize-address-use-after-scope
        )
-
 target_precompile_headers(${PROJECT_NAME}
         PRIVATE ${PROJECT_SOURCE_DIR}/contrib/include/nlohmann/json.hpp)
 

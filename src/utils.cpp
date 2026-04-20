@@ -9,8 +9,9 @@
 #include "util/strencodings.h"
 
 #ifdef LIB_TAPPROTOCOL_USE_BITCOIN_RANDOM
-void GetRandBytes(Span<unsigned char> bytes) noexcept;
-void GetStrongRandBytes(Span<unsigned char> bytes) noexcept;
+#include <span>
+void GetRandBytes(std::span<unsigned char> bytes) noexcept;
+void GetStrongRandBytes(std::span<unsigned char> bytes) noexcept;
 #endif
 
 namespace tap_protocol {
@@ -141,7 +142,7 @@ Bytes RandomBytes(size_t size) {
   for (int left = size; left > 0;) {
     int len = left >= 32 ? 32 : left;
     // TODO (giahuy): consider using GetStrongRandBytes
-    ::GetRandBytes(Span<unsigned char>(pos, len));
+    ::GetRandBytes(std::span<unsigned char>(pos, len));
     pos += len;
     left -= len;
   }
